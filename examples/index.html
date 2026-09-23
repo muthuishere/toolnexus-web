@@ -13,9 +13,28 @@
   * { box-sizing: border-box; }
   body {
     margin: 0; background: var(--bg); color: var(--fg); font: 15px/1.55 system-ui, -apple-system, 'Segoe UI', sans-serif;
-    display: grid; grid-template-columns: minmax(0, 1fr) 340px; min-height: 100vh;
+    display: grid; grid-template-columns: 230px minmax(0, 1fr) 320px; min-height: 100vh;
   }
-  @media (max-width: 900px) { body { grid-template-columns: 1fr; } aside { border-left: 0 !important; } }
+  nav {
+    border-right: 1px solid var(--line); background: var(--panel); padding: 18px 12px;
+    position: sticky; top: 0; height: 100vh; overflow-y: auto;
+  }
+  nav .brand { display: block; font-weight: 700; font-size: 16px; color: var(--accent-soft); text-decoration: none; padding: 0 8px 14px; }
+  nav .navgroup { font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--dim); margin: 16px 8px 6px; }
+  .navitem {
+    display: block; width: 100%; text-align: left; background: transparent; color: var(--fg); border: 0;
+    border-radius: 6px; padding: 7px 8px; font: 400 13.5px/1.35 system-ui, -apple-system, 'Segoe UI', sans-serif;
+    text-decoration: none; cursor: pointer;
+  }
+  .navitem:hover { background: rgba(255,255,255,.04); }
+  .navitem.on { background: rgba(52,120,246,.16); color: var(--accent-soft); font-weight: 600; }
+  .navitem small { display: block; color: var(--dim); font-size: 11.5px; font-weight: 400; margin-top: 1px; }
+  @media (max-width: 1180px) { body { grid-template-columns: 210px minmax(0, 1fr); } aside { grid-column: 2; border-left: 0 !important; border-top: 1px solid var(--line); } }
+  @media (max-width: 760px) {
+    body { grid-template-columns: 1fr; }
+    nav { position: static; height: auto; border-right: 0; border-bottom: 1px solid var(--line); }
+    aside { grid-column: 1; }
+  }
   main { padding: 24px 28px; min-width: 0; }
   aside { border-left: 1px solid var(--line); background: var(--panel); padding: 20px; }
   h1 { font-size: 20px; margin: 0 0 2px; letter-spacing: -0.02em; }
@@ -69,6 +88,7 @@
   td { padding: 4px 0; border-bottom: 1px solid var(--line); }
   td:last-child { text-align: right; color: var(--accent-soft); }
   .hint { font-size: 12px; color: var(--dim); margin-top: 6px; }
+  .hint a, .sub a { color: var(--accent-soft); }
   code { font: 12px var(--mono); background: #242424; padding: 1px 5px; border-radius: 4px; }
   #toolsrc { font: 12.5px/1.6 var(--mono); resize: vertical; tab-size: 2; white-space: pre; overflow-wrap: normal; overflow-x: auto; }
   pre#snippet {
@@ -84,15 +104,8 @@
   .diag pre { margin: 2px 0 0; white-space: pre-wrap; word-break: break-word; max-height: 150px; overflow: auto; }
   .diag .ok { color: var(--ok); }
   .diag .bad { color: var(--warn); }
-  .packs { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; margin: 0 0 12px; }
-  .pack {
-    text-align: left; background: #16171a; color: var(--fg); border: 1px solid var(--line);
-    padding: 10px 12px; font-weight: 400; font-size: 13px;
-  }
-  .pack b { display: block; font-size: 13px; margin-bottom: 2px; }
-  .pack span { display: block; font-size: 11.5px; color: var(--dim); line-height: 1.4; }
-  .pack.on { border-color: var(--accent); background: rgba(52,120,246,.1); }
-  .pack.on b { color: var(--accent-soft); }
+  #modelDetails > summary { cursor: pointer; font-size: 13px; color: var(--accent-soft); margin-bottom: 4px; }
+  .doclink { font-size: 12.5px; color: var(--accent-soft); }
   #packNote { font-size: 12.5px; color: var(--accent-soft); margin: 0 0 10px; }
   #suggest button, #dpresets button { flex: 0 1 auto; font-weight: 400; font-size: 13px; padding: 7px 12px; }
   .dbar { display: grid; grid-template-columns: minmax(0, 200px) 1fr 60px; gap: 10px; align-items: center; font: 12.5px var(--mono); margin: 5px 0; }
@@ -105,17 +118,31 @@
 </head>
 <body>
 
+<nav id="nav">
+  <a class="brand" href="https://muthuishere.github.io/toolnexus-web/">toolnexus-web</a>
+  <div class="navgroup">Tool calling</div>
+  <div id="packs"></div>
+  <div class="navgroup">Beyond chat</div>
+  <button class="navitem" data-section="decide">Decide<small>Jev-style, nothing generated</small></button>
+  <button class="navitem" data-section="documents">Your documents<small>retrieval, offline</small></button>
+  <a class="navitem" href="https://muthuishere.github.io/toolnexus-web/decisions/">Jev plays Snake ↗<small>a game run by a decision model</small></a>
+  <div class="navgroup">Ship it</div>
+  <button class="navitem" data-section="code">Use it in your app<small>the exact code, copyable</small></button>
+  <a class="navitem" href="https://muthuishere.github.io/toolnexus-web/">Docs ↗</a>
+</nav>
+
 <main>
   <h1>toolnexus-web</h1>
   <p class="sub">
-    An LLM running in this tab, with tool calling. <strong>Any ONNX model works</strong> — from the Hub,
-    from a host you control, from a zip URL, or from a file on disk. Same four lines either way,
-    and WebGPU or CPU is decided for you. Nothing you type leaves the page.
+    An LLM running in this tab. Load a model once, then try every example on the left with it —
+    WebGPU or CPU is decided for you, and nothing you type leaves the page.
   </p>
 
   <fieldset>
-    <legend>1 · Where the model comes from — you say, it never guesses</legend>
+    <legend>Model — loaded once, shared by every example</legend>
 
+    <details id="modelDetails" open>
+    <summary>Where the model comes from — you say, it never guesses</summary>
     <div class="radios" id="sourceKind">
       <label><input type="radio" name="kind" value="hub" checked /><span>Hugging Face Hub</span></label>
       <label><input type="radio" name="kind" value="base" /><span>Your own host</span></label>
@@ -192,6 +219,7 @@
       </div>
       <div style="flex:0 0 auto"><button id="load">Load model</button></div>
     </div>
+    </details>
 
     <div class="badges">
       <span class="badge" id="bDevice">device —</span>
@@ -203,10 +231,10 @@
     <div id="log"></div>
   </fieldset>
 
-  <fieldset>
-    <legend>2 · Pick an example — or write your own tools</legend>
-    <div class="packs" id="packs"></div>
+  <fieldset data-section="chat">
+    <legend id="toolsLegend">The tools</legend>
     <p id="packNote"></p>
+    <p class="hint" style="margin:-4px 0 10px"><a class="doclink" id="packDoc" href="#">Read this example in the docs →</a></p>
     <p class="hint" style="margin:0 0 8px">
       Every tool the model can call is defined here, in one file. Change it, hit
       <strong>Apply tools</strong>, and the model picks it up on the next question — no reload,
@@ -220,8 +248,8 @@
     </div>
   </fieldset>
 
-  <fieldset>
-    <legend>3 · Chat — ask something that needs a tool</legend>
+  <fieldset data-section="chat">
+    <legend>Chat — ask something that needs a tool</legend>
     <div id="chat"><p class="placeholder">Load a model, then press Ask. The question is prefilled and the tools above are already live — the model has to call one to answer correctly.</p></div>
     <div class="row">
       <input type="text" id="q" value="What's the weather in Chennai?" disabled />
@@ -246,8 +274,8 @@
     </details>
   </fieldset>
 
-  <fieldset>
-    <legend>4 · Decide — Jev-style, nothing generated</legend>
+  <fieldset data-section="decide" hidden>
+    <legend>Decide — Jev-style, nothing generated</legend>
     <p class="hint" style="margin:0 0 10px">
       A System One decision: the model reads your state and options once, and the probability of
       each option comes straight from its next-token logits. No text is generated, so nothing is
@@ -272,9 +300,9 @@
     <div id="dbars" style="margin-top:10px"></div>
   </fieldset>
 
-  <fieldset>
-    <legend>5 · Your documents — retrieval, offline</legend>
-    <details id="ragWrap">
+  <fieldset data-section="documents" hidden>
+    <legend>Your documents — retrieval, offline</legend>
+    <details id="ragWrap" open>
       <summary style="cursor:pointer;font-size:13px;color:var(--accent-soft)">
         Ask questions about text you paste — no server, nothing uploaded
       </summary>
@@ -301,8 +329,8 @@
     </details>
   </fieldset>
 
-  <fieldset>
-    <legend>6 · Use it in your app — copy this</legend>
+  <fieldset data-section="code" hidden>
+    <legend>Use it in your app — copy this</legend>
     <p class="hint" style="margin:0 0 8px">
       This is the exact code for what you have selected above. It updates as you change the source,
       the backend, or your tools.
@@ -714,9 +742,11 @@ $('toolsrc').value = localStorage.getItem(SAVED) ?? pack.code;
 
 function renderPacks() {
   $('packs').innerHTML = PACKS.map((p) =>
-    `<button class="pack${p === pack ? ' on' : ''}" data-pack="${p.id}"><b>${p.title}</b><span>${p.blurb}</span></button>`,
+    `<button class="navitem pack${p === pack && section === 'chat' ? ' on' : ''}" data-pack="${p.id}">${p.title}<small>${p.blurb}</small></button>`,
   ).join('');
   $('packNote').textContent = pack.note;
+  $('toolsLegend').textContent = `The tools — ${pack.title}`;
+  $('packDoc').href = `https://muthuishere.github.io/toolnexus-web/examples/${pack.id}/`;
   $('suggest').innerHTML = pack.questions
     .map(([label, q]) => `<button class="ghost" data-q="${q.replace(/"/g, '&quot;')}">${label}</button>`)
     .join('');
@@ -736,7 +766,25 @@ async function selectPack(id) {
 
 $('packs').addEventListener('click', (e) => {
   const b = e.target.closest('[data-pack]');
-  if (b) selectPack(b.dataset.pack);
+  if (!b) return;
+  show('chat', b.dataset.pack);
+  selectPack(b.dataset.pack);
+});
+
+// ── One section at a time; the URL fragment names it, so docs can link to
+//    #js or #decide. The model stays loaded across every switch. ──
+const SECTIONS = ['chat', 'decide', 'documents', 'code'];
+let section = 'chat';
+function show(name, fragment = name) {
+  section = SECTIONS.includes(name) ? name : 'chat';
+  for (const f of document.querySelectorAll('fieldset[data-section]')) f.hidden = f.dataset.section !== section;
+  for (const b of document.querySelectorAll('#nav [data-section]')) b.classList.toggle('on', b.dataset.section === section);
+  for (const b of document.querySelectorAll('#packs [data-pack]')) b.classList.toggle('on', section === 'chat' && b.dataset.pack === pack.id);
+  try { history.replaceState(null, '', '#' + fragment); } catch { /* sandboxed frames */ }
+}
+$('nav').addEventListener('click', (e) => {
+  const b = e.target.closest('[data-section]');
+  if (b) show(b.dataset.section);
 });
 $('suggest').addEventListener('click', (e) => {
   const b = e.target.closest('[data-q]');
@@ -854,6 +902,7 @@ $('load').addEventListener('click', async () => {
     }
 
     $('q').disabled = $('ask').disabled = false;
+    $('modelDetails').open = false;
     ragEnable(true);          // documents can only be indexed once a model exists
     $('decide').disabled = false;
     $('dstatus').textContent = 'Ready — press Decide.';
@@ -1051,7 +1100,17 @@ for (const el of ['sourceKind', 'hub', 'base', 'baseId', 'url', 'device', 'dtype
 }
 applyQuery();
 refreshSnippet();
-renderPacks();
+{
+  // #js opens that example, #decide that section; anything else, the chat.
+  const start = decodeURIComponent(location.hash.slice(1));
+  if (PACKS.some((p) => p.id === start)) {
+    show('chat', start);
+    await selectPack(start);
+  } else {
+    renderPacks();
+    show(start, SECTIONS.includes(start) ? start : pack.id);
+  }
+}
 
 // ── Cache: what's stored, and a real delete ──────────────────────────────────
 // The library caches model files under 'transformers-cache' (exported as
@@ -1257,7 +1316,7 @@ $('kexport').addEventListener('click', async () => {
 });
 
 // Expose for scripted checks.
-window.__nexus = { get chat() { return chat; }, get kb() { return kb; }, ask, applyTools, refreshCache, selectPack, newChat, PACKS };
+window.__nexus = { get chat() { return chat; }, get kb() { return kb; }, ask, applyTools, refreshCache, selectPack, newChat, show, PACKS };
 </script>
 </body>
 </html>

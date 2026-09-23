@@ -1,0 +1,36 @@
+---
+title: Examples
+description: Every example in the live demo, with its complete tools file, the questions to try, and what to expect from a small model.
+sidebar:
+  order: 0
+---
+
+{/* GENERATED from the PACKS in examples/index.html by scripts/gen-example-pages.mjs — do not edit. */}
+
+Every example below runs in the [live demo](/toolnexus-web/demo/), which loads a model **once**
+and lets you switch between them. Each page has the complete tools file — the same code the demo
+runs — plus the questions to try and an honest note on how small models handle it.
+
+| Example | What it shows |
+|---|---|
+| [Basics](/toolnexus-web/examples/basics/) | Three tools whose answers a model cannot guess — so a correct answer proves a real call happened. |
+| [JavaScript eval](/toolnexus-web/examples/js/) | A code interpreter in the tab: the model writes JavaScript, a Web Worker runs it. |
+| [This tab](/toolnexus-web/examples/tab/) | Tools no server-side agent can have: they read and change the page you are looking at. |
+| [Crypto & encoding](/toolnexus-web/examples/crypto/) | SHA-256, base64 and UUIDs from Web Crypto — answers no model can guess, only compute. |
+| [Notes](/toolnexus-web/examples/notes/) | Memory that survives a reload: three tools over localStorage. |
+| [Dates & units](/toolnexus-web/examples/dates/) | Day counts, weekdays and unit conversions — the arithmetic small models get subtly wrong. |
+| [Live web](/toolnexus-web/examples/web/) | Live data from GitHub, Hacker News and Wikipedia — the model is local, only each tool's request leaves the tab. |
+| [Just chat](/toolnexus-web/examples/plain/) | No tools: an ordinary chat with the model running in the tab. |
+| [Decisions, Jev-style](/toolnexus-web/decisions/) | Probabilities over your options from one forward pass — and a game of Snake run by a decision model. |
+| [Embeddings & RAG](/toolnexus-web/embeddings-rag/) | Answer from your own documents, retrieved in the tab. |
+
+Every tools file follows one shape:
+
+```js
+tool('name', 'What it does — the model reads this to decide when to call it.',
+  { arg: 'string' },                 // shorthand JSON schema
+  async ({ arg }) => ({ result }));  // any JSON back; the model answers from it
+```
+
+Keep each example to a handful of tools: a 0.5B model picks reliably from three names, not from
+thirty.

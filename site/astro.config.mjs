@@ -51,6 +51,10 @@ export default defineConfig({
 					],
 				},
 				{
+					label: 'Examples',
+					items: [{ autogenerate: { directory: 'examples' } }],
+				},
+				{
 					label: 'Building blocks',
 					items: [
 						{ label: 'Embeddings & RAG', slug: 'embeddings-rag' },

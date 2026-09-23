@@ -120,11 +120,11 @@ export function mockKnowledge({ answer = 'The refund window is RX-4182 days.', r
 }
 
 /** Boot the page. Returns the window plus handles for driving it. */
-export async function loadPage({ chatClass, knowledge, caches: cacheSeed = {} } = {}) {
+export async function loadPage({ chatClass, knowledge, caches: cacheSeed = {}, url = 'http://localhost:8765/examples/' } = {}) {
   const html = readFileSync(PAGE, 'utf8');
   const { MockChat, state } = chatClass ?? mockChatClass();
 
-  const dom = new JSDOM(html, { runScripts: 'outside-only', url: 'http://localhost:8765/examples/' });
+  const dom = new JSDOM(html, { runScripts: 'outside-only', url });
   const { window } = dom;
 
   // Cache Storage — jsdom has none. Model it as a map of name -> [urls].

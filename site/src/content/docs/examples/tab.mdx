@@ -1,0 +1,88 @@
+---
+title: "This tab"
+description: "Tools no server-side agent can have: they read and change the page you are looking at."
+sidebar:
+  order: 3
+---
+
+{/* GENERATED from the PACKS in examples/index.html by scripts/gen-example-pages.mjs — do not edit. */}
+
+Tools no server-side agent can have: they read and change the page you are looking at.
+
+**[Try it live →](/toolnexus-web/demo/#tab)** — load a model once in the demo, then ask one of
+the questions below.
+
+## What it shows
+
+`page_info` reads the tab (language, timezone, screen, cores), `set_accent_color` restyles the
+page you are on, `count_elements` queries the DOM. This is the category of tool that only exists
+because the model runs where the user is — a server can call your API, but it cannot see the
+DOM or change it.
+
+## The tools file
+
+Tools no server-side agent can have: they read and change the page you are looking at.
+
+```js
+// Tools that exist only because the model runs in a browser tab.
+
+tool('page_info', 'Get facts about this browser tab: title, language, timezone, screen and window size, CPU cores, online status.',
+  {},
+  async () => ({
+    title: document.title,
+    language: navigator.language,
+    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+    screen: screen.width + 'x' + screen.height,
+    window: innerWidth + 'x' + innerHeight,
+    cores: navigator.hardwareConcurrency,
+    online: navigator.onLine,
+  }));
+
+tool('set_accent_color', 'Change the accent color of this page. Accepts a CSS color name or a hex code.',
+  { color: 'string' },
+  async ({ color }) => {
+    if (!CSS.supports('color', color)) return { error: color + ' is not a CSS color' };
+    document.documentElement.style.setProperty('--accent', color);
+    document.documentElement.style.setProperty('--accent-soft', color);
+    return { accent: color };
+  });
+
+tool('count_elements', 'Count the elements on this page that match a CSS selector, for example "button" or "h1".',
+  { selector: 'string' },
+  async ({ selector }) => ({ selector, count: document.querySelectorAll(selector).length }));
+```
+
+Each `tool(name, description, params, handler)` is one callable. The file is plain JavaScript,
+not a module — no imports, no build step, and the demo lets you edit it and apply it live.
+
+## Wire it up
+
+```ts
+import { NexusChat } from 'toolnexus-web';
+
+// loadForTools checks the model can really call a tool before handing it over.
+const chat = await NexusChat.loadForTools({ hub: 'onnx-community/Qwen3-0.6B-ONNX' });
+await chat.loadTools('./tools.js');   // the file above, saved as tools.js
+
+chat.on('token', (t) => render(t));
+chat.on('toolCall', (call, result) => console.log(call.name, result));
+
+const answer = await chat.chat("Change the page accent color to orange.");
+```
+
+## Questions to try
+
+- Change the page accent color to orange.
+- How many buttons are on this page?
+- What language and timezone is my browser set to?
+
+## What to expect
+
+Not measured by the harness yet. The change is visible, so you can tell at a glance whether the
+call happened.
+
+## Going further
+
+Anything a page can do is a tool: fill a form, scroll to a section, read the selected text,
+toggle a setting. Validate inputs in the handler — `set_accent_color` checks
+`CSS.supports('color', …)` before touching the page.

@@ -1,0 +1,93 @@
+---
+title: "Dates & units"
+description: "Day counts, weekdays and unit conversions — the arithmetic small models get subtly wrong."
+sidebar:
+  order: 6
+---
+
+{/* GENERATED from the PACKS in examples/index.html by scripts/gen-example-pages.mjs — do not edit. */}
+
+Day counts, weekdays and unit conversions — the arithmetic small models get subtly wrong.
+
+**[Try it live →](/toolnexus-web/demo/#dates)** — load a model once in the demo, then ask one of
+the questions below.
+
+## What it shows
+
+`days_between`, `weekday` and `convert_units` do in code what a small model does from memory
+and gets off by one: leap years, the weekday of a date in 1969, 26.2 miles in kilometres.
+`convert_units` accepts names as well as symbols ("miles", "fahrenheit") because models use both.
+
+## The tools file
+
+The arithmetic small models get subtly wrong, done by code instead.
+
+```js
+// Dates and unit conversions.
+
+tool('days_between', 'Count the days between two dates written as YYYY-MM-DD.',
+  { from: 'string', to: 'string' },
+  async ({ from, to }) => {
+    const a = Date.parse(from), b = Date.parse(to);
+    if (Number.isNaN(a) || Number.isNaN(b)) return { error: 'dates must be YYYY-MM-DD' };
+    return { from, to, days: Math.round((b - a) / 86400000) };
+  });
+
+tool('weekday', 'Get the day of the week for a date written as YYYY-MM-DD.',
+  { date: 'string' },
+  async ({ date }) => {
+    const d = new Date(String(date) + 'T00:00:00Z');
+    if (Number.isNaN(d.getTime())) return { error: 'date must be YYYY-MM-DD' };
+    return { date, weekday: d.toLocaleDateString('en-GB', { weekday: 'long', timeZone: 'UTC' }) };
+  });
+
+tool('convert_units', 'Convert a value between units of length, weight or temperature: km, mi, m, ft, kg, lb, c, f.',
+  { value: 'number', from: 'string', to: 'string' },
+  async ({ value, from, to }) => {
+    const alias = { kilometers: 'km', kilometer: 'km', miles: 'mi', mile: 'mi', meters: 'm', meter: 'm',
+      feet: 'ft', foot: 'ft', kilograms: 'kg', kilogram: 'kg', pounds: 'lb', pound: 'lb',
+      celsius: 'c', fahrenheit: 'f' };
+    const unit = (u) => alias[String(u).toLowerCase()] ?? String(u).toLowerCase();
+    const f = unit(from), t = unit(to), v = Number(value);
+    if (f === 'c' && t === 'f') return { value: +(v * 9 / 5 + 32).toFixed(2), unit: 'f' };
+    if (f === 'f' && t === 'c') return { value: +((v - 32) * 5 / 9).toFixed(2), unit: 'c' };
+    const base = { km: [1000, 'm'], mi: [1609.344, 'm'], m: [1, 'm'], ft: [0.3048, 'm'], kg: [1, 'kg'], lb: [0.45359237, 'kg'] };
+    const a = base[f], b = base[t];
+    if (!a || !b || a[1] !== b[1]) return { error: 'cannot convert ' + from + ' to ' + to };
+    return { value: +(v * a[0] / b[0]).toFixed(3), unit: t };
+  });
+```
+
+Each `tool(name, description, params, handler)` is one callable. The file is plain JavaScript,
+not a module — no imports, no build step, and the demo lets you edit it and apply it live.
+
+## Wire it up
+
+```ts
+import { NexusChat } from 'toolnexus-web';
+
+// loadForTools checks the model can really call a tool before handing it over.
+const chat = await NexusChat.loadForTools({ hub: 'onnx-community/Qwen3-0.6B-ONNX' });
+await chat.loadTools('./tools.js');   // the file above, saved as tools.js
+
+chat.on('token', (t) => render(t));
+chat.on('toolCall', (call, result) => console.log(call.name, result));
+
+const answer = await chat.chat("How many days are there from 2026-01-01 to 2026-12-25?");
+```
+
+## Questions to try
+
+- How many days are there from 2026-01-01 to 2026-12-25?
+- What day of the week was 1969-07-20?
+- Convert 26.2 miles to kilometers.
+- Convert 72 fahrenheit to celsius.
+
+## What to expect
+
+Not measured by the harness yet. The answers are exact and easy to check against the tool log.
+
+## Going further
+
+Add time zones with `Intl.DateTimeFormat`, or currency with a rates API. Keep one tool per
+kind of question — a small model picks well from three names, not from thirty.

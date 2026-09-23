@@ -1,0 +1,58 @@
+---
+title: "Just chat"
+description: "No tools: an ordinary chat with the model running in the tab."
+sidebar:
+  order: 8
+---
+
+{/* GENERATED from the PACKS in examples/index.html by scripts/gen-example-pages.mjs — do not edit. */}
+
+No tools: an ordinary chat with the model running in the tab.
+
+**[Try it live →](/toolnexus-web/demo/#plain)** — load a model once in the demo, then ask one of
+the questions below.
+
+## What it shows
+
+With no tools registered, `chat()` injects no system prompt and runs a single round — a plain
+local chat. Add one `tool(...)` line to the file and it becomes a tool-calling chat again.
+
+## The tools file
+
+No tools registered, so this is an ordinary chat with the model in the tab.
+
+```js
+// No tools: an ordinary chat with the model running in this tab.
+// Add a tool(...) here and it becomes a tool-calling chat again.
+```
+
+Each `tool(name, description, params, handler)` is one callable. The file is plain JavaScript,
+not a module — no imports, no build step, and the demo lets you edit it and apply it live.
+
+## Wire it up
+
+```ts
+import { NexusChat } from 'toolnexus-web';
+
+const chat = await NexusChat.load({ hub: 'onnx-community/Qwen3-0.6B-ONNX' });
+
+chat.on('token', (t) => render(t));
+
+const answer = await chat.chat("Write a haiku about a browser tab.");
+```
+
+## Questions to try
+
+- Write a haiku about a browser tab.
+- Explain WebGPU in two sentences.
+- Suggest three names for a coffee shop run by robots.
+
+## What to expect
+
+A 0.5–0.6B model writes short, fluent text and makes things up freely. Use tools, or
+[retrieval](/toolnexus-web/embeddings-rag/), whenever the answer has to be right.
+
+## Going further
+
+`chat.on('token', …)` streams tokens as they arrive; `chat.reset()` starts a new
+conversation; `chat.messages` is the history, if you want to save or restore it.

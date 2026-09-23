@@ -1,0 +1,83 @@
+---
+title: "Crypto & encoding"
+description: "SHA-256, base64 and UUIDs from Web Crypto — answers no model can guess, only compute."
+sidebar:
+  order: 4
+---
+
+{/* GENERATED from the PACKS in examples/index.html by scripts/gen-example-pages.mjs — do not edit. */}
+
+SHA-256, base64 and UUIDs from Web Crypto — answers no model can guess, only compute.
+
+**[Try it live →](/toolnexus-web/demo/#crypto)** — load a model once in the demo, then ask one of
+the questions below.
+
+## What it shows
+
+A hash is the purest test of whether a tool was really called: there is no way to produce
+`b94d27b9…` for "hello world" from memory. `sha256` uses `crypto.subtle.digest`, `base64`
+encodes and decodes UTF-8 safely, `uuid` uses `crypto.randomUUID()`.
+
+## The tools file
+
+Web Crypto, in the tab. A hash is the purest test there is: no model can guess one.
+
+```js
+// Web Crypto and encoding. The answers cannot be guessed, only computed.
+
+tool('sha256', 'Compute the SHA-256 hash of a text, returned as hex.',
+  { text: 'string' },
+  async ({ text }) => {
+    const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(String(text)));
+    return { text, sha256: [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, '0')).join('') };
+  });
+
+tool('base64', 'Encode text to base64, or decode base64 back to text.',
+  { text: 'string', mode: { type: 'string', enum: ['encode', 'decode'] } },
+  async ({ text, mode }) => {
+    if (mode === 'decode') {
+      const bytes = Uint8Array.from(atob(String(text)), (c) => c.charCodeAt(0));
+      return { text: new TextDecoder().decode(bytes) };
+    }
+    const bytes = new TextEncoder().encode(String(text));
+    return { base64: btoa(String.fromCharCode(...bytes)) };
+  });
+
+tool('uuid', 'Generate a new random UUID.',
+  {},
+  async () => ({ uuid: crypto.randomUUID() }));
+```
+
+Each `tool(name, description, params, handler)` is one callable. The file is plain JavaScript,
+not a module — no imports, no build step, and the demo lets you edit it and apply it live.
+
+## Wire it up
+
+```ts
+import { NexusChat } from 'toolnexus-web';
+
+// loadForTools checks the model can really call a tool before handing it over.
+const chat = await NexusChat.loadForTools({ hub: 'onnx-community/Qwen3-0.6B-ONNX' });
+await chat.loadTools('./tools.js');   // the file above, saved as tools.js
+
+chat.on('token', (t) => render(t));
+chat.on('toolCall', (call, result) => console.log(call.name, result));
+
+const answer = await chat.chat("What is the SHA-256 hash of 'hello world'?");
+```
+
+## Questions to try
+
+- What is the SHA-256 hash of 'hello world'?
+- Base64-encode the text 'toolnexus-web'.
+- Generate a new UUID for me.
+
+## What to expect
+
+Not measured by the harness yet. Compare the hash in the answer with the one in the tool log —
+a small model sometimes truncates or retypes long hex strings when it reports them.
+
+## Going further
+
+Web Crypto also signs, verifies, encrypts and derives keys — all in the tab, all without a
+server. Web Crypto needs a secure context (HTTPS or localhost).

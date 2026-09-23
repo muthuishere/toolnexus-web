@@ -1,0 +1,89 @@
+---
+title: "Live web"
+description: "Live data from GitHub, Hacker News and Wikipedia — the model is local, only each tool's request leaves the tab."
+sidebar:
+  order: 7
+---
+
+{/* GENERATED from the PACKS in examples/index.html by scripts/gen-example-pages.mjs — do not edit. */}
+
+Live data from GitHub, Hacker News and Wikipedia — the model is local, only each tool's request leaves the tab.
+
+**[Try it live →](/toolnexus-web/demo/#web)** — load a model once in the demo, then ask one of
+the questions below.
+
+## What it shows
+
+`github_repo`, `hacker_news_top` and `wikipedia_summary` call public APIs that allow
+cross-origin requests. The split is the point: **the model and your question never leave the
+page**; the only network traffic is the one request each tool makes, to the host it names.
+
+## The tools file
+
+These tools call public APIs. The model still runs in this tab — only each tool's own request leaves it.
+
+```js
+// Tools that fetch live data. The model is local; only these requests leave the tab.
+
+tool('github_repo', 'Look up a GitHub repository written as owner/name: stars, description, language.',
+  { repo: 'string' },
+  async ({ repo }) => {
+    const r = await fetch('https://api.github.com/repos/' + String(repo).trim());
+    if (!r.ok) return { error: 'GitHub answered ' + r.status };
+    const j = await r.json();
+    return { repo: j.full_name, stars: j.stargazers_count, description: j.description, language: j.language };
+  });
+
+tool('hacker_news_top', 'Get the current top three stories on Hacker News.',
+  {},
+  async () => {
+    const base = 'https://hacker-news.firebaseio.com/v0/';
+    const ids = await (await fetch(base + 'topstories.json')).json();
+    const items = await Promise.all(ids.slice(0, 3).map((id) => fetch(base + 'item/' + id + '.json').then((r) => r.json())));
+    return { stories: items.map((s) => ({ title: s.title, points: s.score })) };
+  });
+
+tool('wikipedia_summary', 'Get the Wikipedia summary of a topic.',
+  { topic: 'string' },
+  async ({ topic }) => {
+    const title = encodeURIComponent(String(topic).trim().replace(/ /g, '_'));
+    const r = await fetch('https://en.wikipedia.org/api/rest_v1/page/summary/' + title);
+    if (!r.ok) return { error: 'no Wikipedia page for ' + topic };
+    const j = await r.json();
+    return { title: j.title, summary: j.extract };
+  });
+```
+
+Each `tool(name, description, params, handler)` is one callable. The file is plain JavaScript,
+not a module — no imports, no build step, and the demo lets you edit it and apply it live.
+
+## Wire it up
+
+```ts
+import { NexusChat } from 'toolnexus-web';
+
+// loadForTools checks the model can really call a tool before handing it over.
+const chat = await NexusChat.loadForTools({ hub: 'onnx-community/Qwen3-0.6B-ONNX' });
+await chat.loadTools('./tools.js');   // the file above, saved as tools.js
+
+chat.on('token', (t) => render(t));
+chat.on('toolCall', (call, result) => console.log(call.name, result));
+
+const answer = await chat.chat("How many GitHub stars does muthuishere/toolnexus have?");
+```
+
+## Questions to try
+
+- How many GitHub stars does muthuishere/toolnexus have?
+- What are the top stories on Hacker News right now?
+- What does Wikipedia say about WebGPU?
+
+## What to expect
+
+Not measured by the harness yet. Answers change with the live data, so check them against the
+tool log rather than a fixed value.
+
+## Going further
+
+Any API that sends CORS headers works the same way. For one that does not, put a small proxy
+in front of it — the tool is still just a `fetch()`.

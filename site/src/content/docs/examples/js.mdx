@@ -1,0 +1,84 @@
+---
+title: "JavaScript eval"
+description: "A code interpreter in the tab: the model writes JavaScript, a Web Worker runs it."
+sidebar:
+  order: 2
+---
+
+{/* GENERATED from the PACKS in examples/index.html by scripts/gen-example-pages.mjs — do not edit. */}
+
+A code interpreter in the tab: the model writes JavaScript, a Web Worker runs it.
+
+**[Try it live →](/toolnexus-web/demo/#js)** — load a model once in the demo, then ask one of
+the questions below.
+
+## What it shows
+
+Small models are bad at arithmetic, counting and date maths — and good at writing a line of code
+that does it. `run_js` hands them that escape hatch. The code runs in a **Web Worker built from a
+Blob**: it cannot touch the page, its `console.log` output is captured, and it is **terminated
+after 3 seconds**, so an infinite loop costs nothing.
+
+## The tools file
+
+A code interpreter in the tab. The code runs in a Web Worker — no access to this page — and is killed after 3 seconds.
+
+```js
+// JavaScript eval: the model writes code, a Web Worker runs it.
+// The worker cannot touch this page, and it is killed after 3 seconds,
+// so an infinite loop costs nothing.
+
+tool('run_js', 'Run JavaScript and return the value of the last expression. Use this for any calculation, counting, string or date work. Never compute the answer yourself.',
+  { code: 'string' },
+  ({ code }) => new Promise((resolve) => {
+    const src = 'onmessage = async (e) => {' +
+      ' const logs = []; console.log = (...a) => logs.push(a.join(" "));' +
+      ' try { let v = (0, eval)(e.data); if (v && typeof v.then === "function") v = await v;' +
+      '   postMessage({ result: typeof v === "bigint" ? String(v) : v, logs }); }' +
+      ' catch (err) { postMessage({ error: String(err), logs }); } };';
+    const url = URL.createObjectURL(new Blob([src], { type: 'text/javascript' }));
+    const worker = new Worker(url);
+    const done = (out) => { clearTimeout(timer); worker.terminate(); URL.revokeObjectURL(url); resolve(out); };
+    const timer = setTimeout(() => done({ error: 'timed out after 3 seconds' }), 3000);
+    worker.onmessage = (e) => done(e.data);
+    worker.onerror = (e) => { e.preventDefault(); done({ error: e.message }); };
+    worker.postMessage(String(code));
+  }));
+```
+
+Each `tool(name, description, params, handler)` is one callable. The file is plain JavaScript,
+not a module — no imports, no build step, and the demo lets you edit it and apply it live.
+
+## Wire it up
+
+```ts
+import { NexusChat } from 'toolnexus-web';
+
+// loadForTools checks the model can really call a tool before handing it over.
+const chat = await NexusChat.loadForTools({ hub: 'onnx-community/Qwen3-0.6B-ONNX' });
+await chat.loadTools('./tools.js');   // the file above, saved as tools.js
+
+chat.on('token', (t) => render(t));
+chat.on('toolCall', (call, result) => console.log(call.name, result));
+
+const answer = await chat.chat("Use JavaScript to find the 30th Fibonacci number.");
+```
+
+## Questions to try
+
+- Use JavaScript to find the 30th Fibonacci number.
+- Use JavaScript to add up every prime number below 10000.
+- Use JavaScript to reverse the string 'toolnexus-web'.
+- Use JavaScript to count the days from 2000-01-01 to 2026-09-23.
+
+## What to expect
+
+Not measured by the harness yet. One real run on Qwen2.5-0.5B (WebGPU, q4): the model called
+`run_js` and the worker ran its code — but the code only *defined* a Fibonacci function and never
+called it, so the value came back empty. The mechanism works; a 0.5B model's code is the weak link.
+Phrase questions so the code is short ("Use JavaScript to…"), and use a bigger model for real work.
+
+## Going further
+
+The worker is the security boundary — keep it. For heavier sandboxing, run the code in a
+sandboxed `<iframe>` instead, or in a worker with a stricter timeout.

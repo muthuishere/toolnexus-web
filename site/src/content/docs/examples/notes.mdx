@@ -1,0 +1,84 @@
+---
+title: "Notes"
+description: "Memory that survives a reload: three tools over localStorage."
+sidebar:
+  order: 5
+---
+
+{/* GENERATED from the PACKS in examples/index.html by scripts/gen-example-pages.mjs — do not edit. */}
+
+Memory that survives a reload: three tools over localStorage.
+
+**[Try it live →](/toolnexus-web/demo/#notes)** — load a model once in the demo, then ask one of
+the questions below.
+
+## What it shows
+
+`save_note`, `list_notes` and `read_note` give the model a small persistent store. Save a note,
+reload the page, and ask for it back — the model forgot the conversation, the tools did not.
+
+## The tools file
+
+Saved in this browser only. Save a note, reload the page, and ask for it back.
+
+```js
+// Notes kept in localStorage: the model's memory outlives the page.
+
+const KEY = 'nexus-demo-notes';
+const load = () => JSON.parse(localStorage.getItem(KEY) || '{}');
+const store = (notes) => localStorage.setItem(KEY, JSON.stringify(notes));
+
+tool('save_note', 'Save a note under a title. A note with the same title is replaced.',
+  { title: 'string', text: 'string' },
+  async ({ title, text }) => {
+    const notes = load();
+    notes[String(title).toLowerCase()] = String(text);
+    store(notes);
+    return { saved: title };
+  });
+
+tool('list_notes', 'List the titles of all saved notes.',
+  {},
+  async () => ({ titles: Object.keys(load()) }));
+
+tool('read_note', 'Read a saved note by its title.',
+  { title: 'string' },
+  async ({ title }) => {
+    const text = load()[String(title).toLowerCase()];
+    return text == null ? { error: 'no note titled ' + title } : { title, text };
+  });
+```
+
+Each `tool(name, description, params, handler)` is one callable. The file is plain JavaScript,
+not a module — no imports, no build step, and the demo lets you edit it and apply it live.
+
+## Wire it up
+
+```ts
+import { NexusChat } from 'toolnexus-web';
+
+// loadForTools checks the model can really call a tool before handing it over.
+const chat = await NexusChat.loadForTools({ hub: 'onnx-community/Qwen3-0.6B-ONNX' });
+await chat.loadTools('./tools.js');   // the file above, saved as tools.js
+
+chat.on('token', (t) => render(t));
+chat.on('toolCall', (call, result) => console.log(call.name, result));
+
+const answer = await chat.chat("Save a note titled groceries: milk, eggs, rice.");
+```
+
+## Questions to try
+
+- Save a note titled groceries: milk, eggs, rice.
+- What notes have I saved?
+- What is in my groceries note?
+
+## What to expect
+
+Not measured by the harness yet. Saving works best with the title and text spelled out in the
+question ("Save a note titled groceries: milk, eggs, rice").
+
+## Going further
+
+Swap localStorage for IndexedDB for larger data, or for your own API to sync across devices.
+Notes stay in this browser only; "Delete everything" in the demo removes them.

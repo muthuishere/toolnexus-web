@@ -641,3 +641,51 @@ test('a failed decision is reported and the button comes back', async () => {
   assert.match(p.$('dstatus').textContent, /2–26 choices/);
   assert.equal(p.$('decide').disabled, false);
 });
+
+// ── Sidebar: one section at a time, addressable by fragment ─────────────────
+
+const visible = (p) => [...p.doc.querySelectorAll('fieldset[data-section]')].filter((f) => !f.hidden).map((f) => f.dataset.section);
+
+test('the chat section shows first, and the sidebar lists every example plus the other sections', async () => {
+  const p = await loadPage();
+  assert.deepEqual([...new Set(visible(p))], ['chat']);
+  const sections = [...p.doc.querySelectorAll('#nav [data-section]')].map((b) => b.dataset.section);
+  assert.deepEqual(sections, ['decide', 'documents', 'code']);
+  assert.equal(p.doc.querySelectorAll('#nav [data-pack]').length, 8);
+});
+
+test('a sidebar section shows only itself and names itself in the URL', async () => {
+  const p = await loadPage();
+  p.doc.querySelector('#nav [data-section="decide"]').dispatchEvent(new p.window.Event('click', { bubbles: true }));
+  await p.settle();
+  assert.deepEqual(visible(p), ['decide']);
+  assert.equal(p.window.location.hash, '#decide');
+  assert.ok(!p.doc.querySelector('#packs .on'), 'no example is highlighted outside the chat');
+});
+
+test('picking an example from the sidebar returns to the chat and names the example in the URL', async () => {
+  const p = await loadPage();
+  p.doc.querySelector('#nav [data-section="code"]').dispatchEvent(new p.window.Event('click', { bubbles: true }));
+  await pickPack(p, 'crypto');
+  assert.deepEqual([...new Set(visible(p))], ['chat']);
+  assert.equal(p.window.location.hash, '#crypto');
+  assert.match(p.$('toolsLegend').textContent, /Crypto/);
+  assert.match(p.$('packDoc').href, /\/examples\/crypto\/$/);
+});
+
+test('a link to #js opens that example; a link to #documents opens that section', async () => {
+  const js = await loadPage({ url: 'http://localhost:8765/examples/#js' });
+  assert.match(js.$('toolsrc').value, /Web Worker/);
+  assert.ok(js.doc.querySelector('[data-pack="js"]').classList.contains('on'));
+
+  const docs = await loadPage({ url: 'http://localhost:8765/examples/#documents' });
+  assert.deepEqual(visible(docs), ['documents']);
+});
+
+test('loading a model folds the model picker away', async () => {
+  const p = await loadPage();
+  assert.equal(p.$('modelDetails').open, true);
+  p.click('load');
+  await p.settle();
+  assert.equal(p.$('modelDetails').open, false);
+});

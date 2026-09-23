@@ -1,0 +1,91 @@
+---
+title: "Basics"
+description: "Three tools whose answers a model cannot guess — so a correct answer proves a real call happened."
+sidebar:
+  order: 1
+---
+
+{/* GENERATED from the PACKS in examples/index.html by scripts/gen-example-pages.mjs — do not edit. */}
+
+Three tools whose answers a model cannot guess — so a correct answer proves a real call happened.
+
+**[Try it live →](/toolnexus-web/demo/#basics)** — load a model once in the demo, then ask one of
+the questions below.
+
+## What it shows
+
+Weather, the time in a city, and exact multiplication. The values are deliberately fixed and
+checkable: *31C, humid, light haze* in Chennai, *1096637* for 4831 × 227. A model that answers
+correctly had to call the tool; a model that answers anything else guessed. That makes this the
+example to run first on any new model.
+
+## The tools file
+
+Deliberately unguessable values, so a correct answer proves a real call happened.
+
+```js
+// Every tool the model can call. Edit freely, then "Apply tools".
+// tool(name, description, params, handler)
+
+tool('get_weather', 'Get the current weather for a city. Use this for any weather question.',
+  { city: 'string' },
+  async ({ city }) => {
+    // A real app would fetch() here. Fixed values keep this demo offline and checkable.
+    const table = { chennai: '31C, humid, light haze', tokyo: '18C, clear', london: '9C, drizzle' };
+    return { city, conditions: table[String(city).toLowerCase()] ?? '24C, partly cloudy' };
+  });
+
+tool('get_time', 'Get the current local time in a city. Use this for any question about the time.',
+  { city: 'string' },
+  async ({ city }) => {
+    const zones = { chennai: 'Asia/Kolkata', tokyo: 'Asia/Tokyo', london: 'Europe/London' };
+    const tz = zones[String(city).toLowerCase()] ?? 'UTC';
+    return { city, timezone: tz, time: new Date().toLocaleTimeString('en-GB', { timeZone: tz }) };
+  });
+
+tool('multiply', 'Multiply two numbers exactly. Use this for arithmetic — never calculate it yourself.',
+  { a: 'number', b: 'number' },
+  async ({ a, b }) => ({ product: Number(a) * Number(b) }));
+
+// Try adding your own — it is live on the next question:
+//
+// tool('get_stock', 'Look up a stock price by ticker.',
+//   { ticker: 'string' },
+//   async ({ ticker }) => ({ ticker, price: 431.20 }));
+```
+
+Each `tool(name, description, params, handler)` is one callable. The file is plain JavaScript,
+not a module — no imports, no build step, and the demo lets you edit it and apply it live.
+
+## Wire it up
+
+```ts
+import { NexusChat } from 'toolnexus-web';
+
+// loadForTools checks the model can really call a tool before handing it over.
+const chat = await NexusChat.loadForTools({ hub: 'onnx-community/Qwen3-0.6B-ONNX' });
+await chat.loadTools('./tools.js');   // the file above, saved as tools.js
+
+chat.on('token', (t) => render(t));
+chat.on('toolCall', (call, result) => console.log(call.name, result));
+
+const answer = await chat.chat("What's the weather in Chennai?");
+```
+
+## Questions to try
+
+- What's the weather in Chennai?
+- What time is it in Tokyo right now?
+- What is 4831 multiplied by 227?
+
+## What to expect
+
+Measured by the repo's harness (`npm run test:models`, real weights, CPU): **Qwen3-0.6B and
+Qwen2.5-0.5B both call all three tools and answer from the result at q4** (3/3 each). Below
+~0.5B it stops working — SmolLM2-360M scored 0/3 at every quantization. See
+[Which models actually work](/toolnexus-web/verified-models/).
+
+## Going further
+
+Replace the fixed tables with `fetch()` calls to your own API. The handler can be async
+and return any JSON; the model reads it back and answers from it.
