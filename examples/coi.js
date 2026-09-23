@@ -50,6 +50,8 @@ if (typeof window === 'undefined') {
     // registering would be pure overhead.
     if (window.crossOriginIsolated) return;
     if (!('serviceWorker' in navigator)) return;
+    // A framed page is isolated only if its parent is, so a reload buys nothing.
+    if (window !== window.top) return;
 
     // One reload only. Without this guard a browser that ignores the headers
     // would reload forever, which is far worse than a slow CPU path.

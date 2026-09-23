@@ -3,6 +3,8 @@ title: Decisions, Jev-style
 description: System One decisions in the browser — a state, typed questions, the options you allow, and one forward pass that returns a probability for each. Nothing generated, nothing parsed.
 ---
 
+import JevSnake from '../../components/JevSnake.astro';
+
 A **System One decision** is the fast kind: read the situation, pick one of the allowed options,
 say how sure you are. [Jev](https://github.com/yibie/awesome-jev) made the shape popular — send a
 state and typed questions, get back a typed answer with a calibrated probability for every
@@ -11,8 +13,14 @@ options you gave.
 
 toolnexus-web does this in the tab, on WebGPU or CPU.
 
-**[Watch it play Snake →](/toolnexus-web/demo/jev-snake.html)** — every move is one decision,
-and the page shows the exact call it just made.
+## Jev plays Snake
+
+Every move below is one decision, made on your GPU in this tab: the board goes in as one
+sentence, the moves that do not crash go in as the allowed options, and the model scores them.
+Load the model once (348 MB, cached after that), then press **Jev plays** — or play it yourself.
+The code panel under the board is the exact call it just made.
+
+<JevSnake />
 
 ## A model trained to decide — `NexusDecider`
 

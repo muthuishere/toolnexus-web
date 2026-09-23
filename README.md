@@ -117,7 +117,7 @@ const { answers } = await decider.systemOne(ticket, {
 });
 ```
 
-Which one, measured on the same 60 Snake boards on WebGPU ([play it](https://muthuishere.github.io/toolnexus-web/demo/jev-snake.html)):
+Which one, measured on the same 60 Snake boards on WebGPU ([play it](https://muthuishere.github.io/toolnexus-web/decisions/)):
 Qwen3-0.6B via `decide()` moved toward the food 45% of the time, against 49% for a random safe
 move; `NexusDecider` 100%, at 36 ms a decision. A small chat model is a weak decider (SemIf measured
 Qwen3-0.6B at 40.7% agreement with Jev). `NexusDecider` needs Transformers.js 4.x and loads it

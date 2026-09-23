@@ -1,0 +1,19 @@
+---
+// The Snake game, embedded. The page itself lives in /demo so it keeps its own
+// service worker scope and CDN imports; it reports its height so the frame
+// never scrolls on its own.
+const src = `${import.meta.env.BASE_URL.replace(/\/$/, '')}/demo/jev-snake.html?embed`;
+---
+<iframe id="jev-snake" src={src} title="Jev plays Snake" allow="clipboard-write"></iframe>
+
+<style>
+  #jev-snake { width: 100%; height: 1400px; border: 0; display: block; }
+</style>
+
+<script>
+  const frame = document.getElementById('jev-snake');
+  addEventListener('message', (e) => {
+    if (e.origin !== location.origin || e.data?.type !== 'jev-snake-height' || !frame) return;
+    frame.style.height = `${e.data.height}px`;
+  });
+</script>

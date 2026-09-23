@@ -4,6 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Jev plays Snake — toolnexus-web</title>
+<script>if (new URLSearchParams(location.search).has('embed')) document.documentElement.classList.add('embed');</script>
 <style>
   :root {
     --bg: #121212; --panel: #1c1e22; --line: #2a2c31; --fg: #f2f3f5;
@@ -49,6 +50,12 @@
   .built a { color: var(--accent-soft); }
   .built code { font: 12.5px var(--mono); background: #242424; padding: 1px 5px; border-radius: 4px; }
   .codecard { margin-top: 20px; }
+  /* A dark scheme keeps a transparent frame see-through over dark docs, and
+     dark rather than white over light ones. */
+  .embed { color-scheme: dark; }
+  .embed body { background: transparent; }
+  .embed .wrap { padding: 0 0 4px; max-width: none; }
+  .embed h1, .embed .built, .embed .sub { display: none; }
   .codecard .head { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
   .codecard h2 { margin: 0; }
   pre.code { color: var(--fg); max-height: none; font-size: 12.5px; line-height: 1.6; overflow-x: auto; white-space: pre; }
@@ -419,6 +426,16 @@ $('copyCode').addEventListener('click', async () => {
   }
   setTimeout(() => ($('copyCode').textContent = 'Copy'), 1800);
 });
+
+// Embedded in the docs: tell the parent how tall the game is, so the frame
+// never scrolls on its own.
+if (document.documentElement.classList.contains('embed') && window.parent !== window) {
+  // The game's own box, not the document: a framed document is never shorter
+  // than its frame, so measuring it could only ever grow the frame.
+  const wrap = document.querySelector('.wrap');
+  const post = () => window.parent.postMessage({ type: 'jev-snake-height', height: Math.ceil(wrap.getBoundingClientRect().height) }, location.origin);
+  new ResizeObserver(post).observe(wrap);
+}
 
 reset();
 renderStats();
