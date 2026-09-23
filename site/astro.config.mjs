@@ -38,6 +38,7 @@ export default defineConfig({
 					items: [
 						{ label: 'Quickstart', slug: 'quickstart' },
 						{ label: 'Live demo', link: '/toolnexus-web/demo/', attrs: { target: '_blank' } },
+						{ label: 'Jev plays Snake', link: '/toolnexus-web/demo/jev-snake.html', attrs: { target: '_blank' } },
 					],
 				},
 				{
@@ -45,6 +46,7 @@ export default defineConfig({
 					items: [
 						{ label: 'GPU or CPU — same API', slug: 'gpu-or-cpu' },
 						{ label: 'Tool calling', slug: 'tool-calling' },
+						{ label: 'Decisions, Jev-style', slug: 'decisions' },
 						{ label: 'Which models actually work', slug: 'verified-models' },
 						{ label: 'Knowledge & offline bundles', slug: 'knowledge' },
 					],

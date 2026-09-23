@@ -128,6 +128,88 @@ test('reset restores the sample file', async () => {
   assert.match(p.$('toolsrc').value, /tool\('get_weather'/);
 });
 
+// ── Examples gallery ───────────────────────────────────────────────────────
+
+const pickPack = async (p, id) => {
+  p.doc.querySelector(`[data-pack="${id}"]`).dispatchEvent(new p.window.Event('click', { bubbles: true }));
+  await p.settle();
+};
+
+test('every example is offered, and basics is selected first', async () => {
+  const p = await loadPage();
+  const ids = [...p.doc.querySelectorAll('[data-pack]')].map((b) => b.dataset.pack);
+  assert.deepEqual(ids, ['basics', 'js', 'tab', 'crypto', 'notes', 'dates', 'web', 'plain']);
+  assert.ok(p.doc.querySelector('[data-pack="basics"]').classList.contains('on'));
+});
+
+test('picking an example swaps the tools, the questions, and starts a new chat', async () => {
+  const cc = mockChatClass();
+  const p = await loadPage({ chatClass: cc });
+  p.click('load');
+  await p.settle();
+  const chat = cc.state.instances[0];
+
+  await pickPack(p, 'js');
+
+  assert.deepEqual([...chat.tools.keys()], ['run_js']);
+  assert.match(p.$('toolsrc').value, /Web Worker/);
+  assert.match(p.$('q').value, /Fibonacci/);
+  assert.ok([...p.$('suggest').querySelectorAll('[data-q]')].some((b) => /prime/.test(b.dataset.q)));
+  assert.equal(chat.resets, 1, 'old tools must not linger in the conversation');
+  assert.ok(p.doc.querySelector('[data-pack="js"]').classList.contains('on'));
+});
+
+test('every example registers the tools it advertises', async () => {
+  const cc = mockChatClass();
+  const p = await loadPage({ chatClass: cc });
+  p.click('load');
+  await p.settle();
+  const expected = {
+    tab: ['page_info', 'set_accent_color', 'count_elements'],
+    crypto: ['sha256', 'base64', 'uuid'],
+    notes: ['save_note', 'list_notes', 'read_note'],
+    dates: ['days_between', 'weekday', 'convert_units'],
+    web: ['github_repo', 'hacker_news_top', 'wikipedia_summary'],
+  };
+  for (const [id, names] of Object.entries(expected)) {
+    await pickPack(p, id);
+    assert.deepEqual([...cc.state.instances[0].tools.keys()], names, id);
+  }
+});
+
+test('"Just chat" registers no tools and says so', async () => {
+  const cc = mockChatClass();
+  const p = await loadPage({ chatClass: cc });
+  p.click('load');
+  await p.settle();
+  await pickPack(p, 'plain');
+  assert.equal(cc.state.instances[0].tools.size, 0);
+  assert.match(p.$('toolStatus').textContent, /no tools/);
+});
+
+test('the chosen example is remembered', async () => {
+  const p = await loadPage();
+  await pickPack(p, 'crypto');
+  assert.equal(p.window.localStorage.getItem('nexus-demo-pack'), 'crypto');
+});
+
+test('New chat clears the conversation and the panels', async () => {
+  const cc = mockChatClass({ script: ['It is 31C.'] });
+  const p = await loadPage({ chatClass: cc });
+  p.click('load');
+  await p.settle();
+  p.click('ask');
+  await p.settle();
+  assert.match(p.$('chat').textContent, /31C/);
+
+  p.click('newChat');
+  await p.settle();
+
+  assert.equal(cc.state.instances[0].resets, 1);
+  assert.doesNotMatch(p.$('chat').textContent, /31C/);
+  assert.match(p.$('calls').textContent, /none yet/);
+});
+
 // ── Asking ─────────────────────────────────────────────────────────────────
 
 test('the question is prefilled and asking renders both bubbles', async () => {
@@ -152,7 +234,7 @@ test('the preset buttons ask their own question', async () => {
   await p.settle();
 
   const math = [...p.doc.querySelectorAll('button[data-q]')].find((b) => /4831/.test(b.dataset.q));
-  math.dispatchEvent(new p.window.Event('click'));
+  math.dispatchEvent(new p.window.Event('click', { bubbles: true }));
   await p.settle();
 
   assert.match(cc.state.instances[0].asked[0], /4831 multiplied by 227/);
@@ -510,4 +592,52 @@ test('the demo loads the cross-origin isolation shim before anything fetches wei
   // Order matters: the shim reloads the page to gain isolation. If that happens
   // after a multi-hundred-MB download starts, the download is wasted.
   assert.ok(coi < importmap, 'coi.js must come before the module and its imports');
+});
+
+// ── Decide (Jev-style) ─────────────────────────────────────────────────────
+
+test('the decision panel is prefilled and inert until a model is loaded', async () => {
+  const p = await loadPage();
+  assert.match(p.$('dstate').value, /Payroll asks for your password/);
+  assert.equal(p.$('dopts').value, 'Legitimate\nSpam\nPhishing');
+  assert.equal(p.$('decide').disabled, true);
+});
+
+test('deciding sends the state and one option per line, and draws a bar each', async () => {
+  const cc = mockChatClass();
+  const p = await loadPage({ chatClass: cc });
+  p.click('load');
+  await p.settle();
+  assert.equal(p.$('decide').disabled, false, 'loading a model arms the panel');
+
+  p.$('dopts').value = 'Legitimate\n\n  Spam  \nPhishing\n';
+  p.click('decide');
+  await p.settle();
+
+  const [call] = cc.state.instances[0].decided;
+  assert.match(call.prompt, /Payroll/);
+  assert.deepEqual([...call.choices], ['Legitimate', 'Spam', 'Phishing'], 'blank lines dropped, whitespace trimmed');
+  assert.equal(p.$('dbars').querySelectorAll('.dbar').length, 3);
+  assert.equal(p.$('dbars').querySelector('.dbar.top').textContent.includes('Phishing'), true);
+  assert.match(p.$('dstatus').textContent, /42 ms.*0 generated/);
+});
+
+test('a preset replaces the state and the options', async () => {
+  const p = await loadPage();
+  p.doc.querySelector('[data-preset="urgent"]').dispatchEvent(new p.window.Event('click', { bubbles: true }));
+  await p.settle();
+  assert.match(p.$('dstate').value, /98% disk/);
+  assert.equal(p.$('dopts').value, 'Yes\nNo');
+});
+
+test('a failed decision is reported and the button comes back', async () => {
+  const cc = mockChatClass();
+  cc.state.decideError = 'decide needs 2–26 choices, got 1';
+  const p = await loadPage({ chatClass: cc });
+  p.click('load');
+  await p.settle();
+  p.click('decide');
+  await p.settle();
+  assert.match(p.$('dstatus').textContent, /2–26 choices/);
+  assert.equal(p.$('decide').disabled, false);
 });

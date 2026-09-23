@@ -1,0 +1,429 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Jev plays Snake — toolnexus-web</title>
+<style>
+  :root {
+    --bg: #121212; --panel: #1c1e22; --line: #2a2c31; --fg: #f2f3f5;
+    --dim: #888b93; --accent: #3478f6; --accent-soft: #6fa0ff; --ok: #3fb950; --warn: #d29922; --bad: #f0645a;
+    --mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--fg); font: 15px/1.55 system-ui, -apple-system, 'Segoe UI', sans-serif; }
+  .wrap { max-width: 1040px; margin: 0 auto; padding: 24px 16px 48px; }
+  h1 { font-size: 22px; margin: 0 0 4px; letter-spacing: -0.02em; }
+  .sub { color: var(--dim); font-size: 14px; margin: 0 0 20px; max-width: 760px; }
+  .sub a, .hint a { color: var(--accent-soft); }
+  .grid { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 20px; align-items: start; }
+  @media (max-width: 860px) { .grid { grid-template-columns: 1fr; } }
+  .card { border: 1px solid var(--line); border-radius: 10px; background: var(--panel); padding: 16px; }
+  canvas { width: 100%; max-width: 560px; aspect-ratio: 1; display: block; margin: 0 auto; border-radius: 8px; background: #16171a; touch-action: none; }
+  .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 12px; }
+  button { background: var(--accent); color: #fff; border: 0; border-radius: 8px; padding: 9px 14px; font-size: 14px; font-weight: 600; cursor: pointer; }
+  button.ghost { background: transparent; color: var(--accent-soft); border: 1px solid var(--line); }
+  button:disabled { opacity: .45; cursor: not-allowed; }
+  select { background: #16171a; color: var(--fg); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; font: 13px var(--mono); max-width: 100%; }
+  h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--dim); margin: 18px 0 8px; }
+  h2:first-child { margin-top: 0; }
+  .bar { display: grid; grid-template-columns: 52px 1fr 56px; gap: 8px; align-items: center; font: 12.5px var(--mono); margin: 5px 0; }
+  .bar .track { height: 12px; background: #16171a; border-radius: 6px; overflow: hidden; border: 1px solid var(--line); }
+  .bar .fill { height: 100%; width: 0; background: var(--accent); transition: width .08s linear; }
+  .bar.pick .fill { background: var(--ok); }
+  .bar.blocked { color: var(--dim); text-decoration: line-through; }
+  .bar.blocked .fill { background: var(--bad); opacity: .5; }
+  .bar .p { text-align: right; color: var(--accent-soft); }
+  table { width: 100%; border-collapse: collapse; font: 12.5px var(--mono); }
+  td { padding: 4px 0; border-bottom: 1px solid var(--line); }
+  td:last-child { text-align: right; color: var(--accent-soft); }
+  pre { font: 11.5px/1.5 var(--mono); white-space: pre-wrap; word-break: break-word; background: #16171a; border: 1px solid var(--line); border-radius: 8px; padding: 10px; margin: 0; color: var(--dim); max-height: 160px; overflow: auto; }
+  #log { font: 12px var(--mono); color: var(--dim); white-space: pre-wrap; max-height: 90px; overflow: auto; margin-top: 8px; }
+  .hint { font-size: 12.5px; color: var(--dim); margin: 8px 0 0; }
+  .score { font: 600 13px var(--mono); color: var(--fg); }
+  .verdict { font: 12.5px var(--mono); margin-top: 6px; min-height: 1.5em; }
+  .verdict .guard { color: var(--warn); }
+  .verdict .ok { color: var(--ok); }
+  progress { width: 100%; height: 6px; accent-color: var(--accent); margin-top: 10px; }
+  .built { font-size: 13.5px; color: var(--fg); margin: 2px 0 10px; padding: 8px 12px; border: 1px solid var(--line); border-left: 3px solid var(--accent); border-radius: 8px; background: var(--panel); max-width: 760px; }
+  .built a { color: var(--accent-soft); }
+  .built code { font: 12.5px var(--mono); background: #242424; padding: 1px 5px; border-radius: 4px; }
+  .codecard { margin-top: 20px; }
+  .codecard .head { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .codecard h2 { margin: 0; }
+  pre.code { color: var(--fg); max-height: none; font-size: 12.5px; line-height: 1.6; overflow-x: auto; white-space: pre; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Jev plays Snake</h1>
+  <p class="built">
+    Built with <a href="https://muthuishere.github.io/toolnexus-web/"><strong>toolnexus-web</strong></a> —
+    the browser edition of <a href="https://github.com/muthuishere/toolnexus">toolnexus</a>.
+    One import, <code>NexusDecider</code>, is the whole AI side of this game.
+    <a href="https://github.com/muthuishere/toolnexus-web">GitHub</a> ·
+    <a href="https://www.npmjs.com/package/toolnexus-web">npm</a>
+  </p>
+  <p class="sub">
+    Every move is a <strong>Jev-style System One decision</strong> from
+    <a href="https://huggingface.co/onnx-community/open-jev-deberta-v3-large-ONNX">open-jev</a>, a
+    DeBERTa model trained only to decide: the board goes in as one sentence, the moves that do not
+    crash go in as the allowed options, and one forward pass scores them. No text is generated.
+    It runs on your GPU, in this tab. <a href="./">← back to the demo</a>
+  </p>
+
+  <div class="grid">
+    <div class="card">
+      <canvas id="board" width="560" height="560"></canvas>
+      <div class="row">
+        <select id="device">
+          <option value="webgpu">WebGPU</option>
+          <option value="wasm">CPU (wasm)</option>
+        </select>
+        <button id="load">Load the decision model (348 MB)</button>
+      </div>
+      <div class="row">
+        <button id="play" disabled>Jev plays</button>
+        <button class="ghost" id="human">I play (arrow keys)</button>
+        <button class="ghost" id="pause" disabled>Pause</button>
+        <button class="ghost" id="restart">Restart</button>
+        <span class="score" id="score">score 0 · best 0</span>
+      </div>
+      <progress id="prog" value="0" max="100" hidden></progress>
+      <div id="log"></div>
+    </div>
+
+    <div class="card">
+      <h2>This decision</h2>
+      <div id="bars"></div>
+      <div class="verdict" id="verdict"></div>
+
+      <h2>Scoreboard</h2>
+      <table id="stats"></table>
+
+      <h2>What the model was asked</h2>
+      <pre id="prompt">Load a model and press “Jev plays”.</pre>
+      <p class="hint">
+        The model sees this sentence and only the moves that do not crash — Jev's "allowed options".
+        It never sees the grid, never writes a word, and cannot answer anything else.
+      </p>
+
+      <h2>Why this model</h2>
+      <p class="hint" style="margin-top:0">
+        Same 60 random boards, measured in this page on WebGPU: a 0.6B chat model reading letter
+        logits moved toward the food <strong>45%</strong> of the time — a random safe move manages
+        49%. This model: <strong>100%</strong>, at 36&nbsp;ms a move.
+      </p>
+    </div>
+  </div>
+
+  <div class="card codecard">
+    <div class="head">
+      <h2>The code — this exact call, live</h2>
+      <button class="ghost" id="copyCode">Copy</button>
+    </div>
+    <p class="hint" style="margin:6px 0 10px">
+      What the game just ran, with the real state, the moves it offered and what came back.
+      It updates every move. Everything else on this page is drawing the board.
+      <code>npm install toolnexus-web</code> — the same call works in your app.
+    </p>
+    <pre class="code" id="code"></pre>
+  </div>
+</div>
+
+<script src="coi.js"></script>
+<script type="module">
+// The published package off a CDN, so this page is standalone. ?local loads the
+// repo's own build instead — serve the repo root and open examples/jev-snake.html?local.
+const LOCAL = new URLSearchParams(location.search).has('local');
+// Transformers.js 4.x: the open-jev graph needs its newer ONNX Runtime.
+const transformers = await import('https://cdn.jsdelivr.net/npm/@huggingface/transformers@4.3.0');
+const { NexusDecider } = await import(LOCAL ? '../dist/index.js' : 'https://cdn.jsdelivr.net/npm/toolnexus-web@0.9.0/dist/index.js');
+
+const $ = (id) => document.getElementById(id);
+const log = (m) => { $('log').textContent += m + '\n'; $('log').scrollTop = 1e6; };
+
+// ── The game ────────────────────────────────────────────────────────────────
+const N = 14;
+const MOVES = ['up', 'down', 'left', 'right'];
+const DELTA = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] };
+
+let snake, dir, food, score = 0, best = 0, alive = true;
+const stats = { moves: 0, ms: 0, towardFood: 0, deaths: 0 };
+
+function reset() {
+  snake = [{ x: 4, y: 7 }, { x: 3, y: 7 }, { x: 2, y: 7 }];
+  dir = 'right';
+  score = 0;
+  alive = true;
+  placeFood();
+  draw();
+  renderScore();
+}
+
+function placeFood() {
+  const free = [];
+  for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+    if (!snake.some((s) => s.x === x && s.y === y)) free.push({ x, y });
+  }
+  food = free[Math.floor(Math.random() * free.length)];
+}
+
+const next = (m) => ({ x: snake[0].x + DELTA[m][0], y: snake[0].y + DELTA[m][1] });
+
+/** Would this move kill the snake? The tail moves out of the way unless we eat. */
+function blocked(m) {
+  const n = next(m);
+  if (n.x < 0 || n.y < 0 || n.x >= N || n.y >= N) return true;
+  const eats = n.x === food.x && n.y === food.y;
+  const body = eats ? snake : snake.slice(0, -1);
+  return body.some((s) => s.x === n.x && s.y === n.y);
+}
+
+function step(m) {
+  if (blocked(m)) { alive = false; stats.deaths++; return; }
+  const n = next(m);
+  snake.unshift(n);
+  if (n.x === food.x && n.y === food.y) {
+    score++;
+    best = Math.max(best, score);
+    if (snake.length === N * N) { alive = false; return; }
+    placeFood();
+  } else {
+    snake.pop();
+  }
+  dir = m;
+}
+
+// ── Drawing ─────────────────────────────────────────────────────────────────
+const ctx = $('board').getContext('2d');
+const C = 560 / N;
+function draw() {
+  ctx.clearRect(0, 0, 560, 560);
+  ctx.strokeStyle = '#1f2125';
+  for (let i = 1; i < N; i++) {
+    ctx.beginPath(); ctx.moveTo(i * C, 0); ctx.lineTo(i * C, 560); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(0, i * C); ctx.lineTo(560, i * C); ctx.stroke();
+  }
+  ctx.fillStyle = '#f0645a';
+  ctx.beginPath(); ctx.arc(food.x * C + C / 2, food.y * C + C / 2, C * 0.32, 0, Math.PI * 2); ctx.fill();
+  snake.forEach((s, i) => {
+    ctx.fillStyle = i === 0 ? (alive ? '#6fa0ff' : '#d29922') : '#3478f6';
+    ctx.globalAlpha = i === 0 ? 1 : Math.max(0.35, 1 - i / (snake.length + 6));
+    ctx.fillRect(s.x * C + 2, s.y * C + 2, C - 4, C - 4);
+  });
+  ctx.globalAlpha = 1;
+  if (!alive) {
+    ctx.fillStyle = 'rgba(18,18,18,.72)'; ctx.fillRect(0, 0, 560, 560);
+    ctx.fillStyle = '#f2f3f5'; ctx.font = '600 26px system-ui'; ctx.textAlign = 'center';
+    ctx.fillText(`Game over — score ${score}`, 280, 272);
+    ctx.font = '15px system-ui'; ctx.fillStyle = '#888b93';
+    ctx.fillText('Restart, or let Jev try again', 280, 302);
+  }
+}
+
+function renderScore() { $('score').textContent = `score ${score} · best ${best}`; }
+
+function renderStats() {
+  const rows = [
+    ['decisions', stats.moves],
+    ['avg decision', stats.moves ? (stats.ms / stats.moves).toFixed(0) + ' ms' : '—'],
+    ['toward the food', stats.moves ? Math.round((100 * stats.towardFood) / stats.moves) + '%' : '—'],
+    ['deaths', stats.deaths],
+  ];
+  $('stats').innerHTML = rows.map(([k, v]) => `<tr><td>${k}</td><td>${v}</td></tr>`).join('');
+}
+
+function renderBars(probabilities, pick) {
+  $('bars').innerHTML = MOVES.map((m) => {
+    const p = probabilities[m];
+    const cls = m === pick ? 'pick' : p == null ? 'blocked' : '';
+    const label = p == null ? 'crash' : (p * 100).toFixed(1) + '%';
+    return `<div class="bar ${cls}"><span>${m}</span><div class="track"><div class="fill" style="width:${((p ?? 0) * 100).toFixed(1)}%"></div></div><span class="p">${label}</span></div>`;
+  }).join('');
+}
+
+// ── The decision ────────────────────────────────────────────────────────────
+/** One sentence, relative to the head — the model never has to read a grid.
+ *  Measured on 60 boards: this wording 100% toward the food; "the food is up
+ *  and right" 47%, no better than a random safe move. */
+function describe() {
+  const h = snake[0], dx = food.x - h.x, dy = food.y - h.y;
+  const horiz = dx > 0 ? `${dx} to the right` : dx < 0 ? `${-dx} to the left` : 'in the same column';
+  const vert = dy > 0 ? `${dy} down` : dy < 0 ? `${-dy} up` : 'in the same row';
+  return `The food is ${horiz} and ${vert} from the snake's head.`;
+}
+const QUESTION = 'Which way should the snake move to get closer to the food?';
+
+/** The call as you would write it, filled with the values of the last move. */
+function renderCode(state, allowed, answer) {
+  const probs = answer
+    ? '{ ' + Object.entries(answer.probabilities).map(([k, v]) => `${k}: ${v.toFixed(3)}`).join(', ') + ' }'
+    : '{ … }';
+  $('code').textContent = `import { NexusDecider } from 'toolnexus-web';
+
+// open-jev: a DeBERTa model trained only to decide. 348 MB, WebGPU if present.
+const decider = await NexusDecider.load();
+
+// Every tick: the board as one sentence, and only the moves that do not crash.
+const { answers, ms } = await decider.systemOne(
+  ${JSON.stringify(state)},
+  {
+    move: {
+      type: 'choice',
+      instructions: ${JSON.stringify(QUESTION)},
+      options: ${JSON.stringify(allowed)},
+    },
+  },
+);
+
+answers.move.choice;         // ${answer ? JSON.stringify(answer.choice) : '…'}
+answers.move.probabilities;  // ${probs}
+ms;                          // ${answer ? answer.ms : '…'} — one forward pass, nothing generated`;
+}
+
+const towardFood = (m) => {
+  const h = snake[0], n = next(m);
+  return Math.abs(food.x - n.x) + Math.abs(food.y - n.y) < Math.abs(food.x - h.x) + Math.abs(food.y - h.y);
+};
+
+let decider = null, mode = null, timer = null;
+
+async function jevTurn() {
+  const allowed = MOVES.filter((m) => !blocked(m));
+  const state = describe();
+  $('prompt').textContent = `${state}\n\nQ: ${QUESTION}\nallowed: ${allowed.join(', ') || '(none)'}`;
+  if (!allowed.length) {
+    renderBars({}, null);
+    $('verdict').innerHTML = '<span class="guard">boxed in — every move crashes</span>';
+    return dir;
+  }
+  if (allowed.length === 1) {
+    renderBars({ [allowed[0]]: 1 }, allowed[0]);
+    $('verdict').innerHTML = `<span class="ok">✓ ${allowed[0]} — the only move that does not crash</span>`;
+    return allowed[0];
+  }
+  const { answers, ms } = await decider.systemOne(state, { move: { type: 'choice', instructions: QUESTION, options: allowed } });
+  const pick = answers.move.choice;
+  renderCode(state, allowed, { ...answers.move, ms });
+  stats.moves++;
+  stats.ms += ms;
+  if (towardFood(pick)) stats.towardFood++;
+  renderBars(answers.move.probabilities, pick);
+  $('verdict').innerHTML = `<span class="ok">✓ ${pick} · ${(answers.move.probability * 100).toFixed(0)}% sure · ${ms} ms</span>`;
+  return pick;
+}
+
+async function loop() {
+  if (!mode) return;
+  const t0 = performance.now();
+  let move;
+  try {
+    move = mode === 'jev' ? await jevTurn() : (queued ?? dir);
+  } catch (e) {
+    log('✗ ' + (e?.message ?? e));
+    stop();
+    return;
+  }
+  queued = null;
+  step(move);
+  draw();
+  renderScore();
+  renderStats();
+  if (!alive) { stop(); return; }
+  const minTick = mode === 'jev' ? 60 : 140;
+  timer = setTimeout(loop, Math.max(0, minTick - (performance.now() - t0)));
+}
+
+function start(m) {
+  stop();
+  if (!alive) reset();
+  mode = m;
+  $('pause').disabled = false;
+  loop();
+}
+
+function stop() {
+  mode = null;
+  clearTimeout(timer);
+  $('pause').disabled = true;
+}
+
+// ── Human play ──────────────────────────────────────────────────────────────
+let queued = null;
+const KEYS = { ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right', w: 'up', s: 'down', a: 'left', d: 'right' };
+addEventListener('keydown', (e) => {
+  const m = KEYS[e.key];
+  if (!m || mode !== 'human') return;
+  e.preventDefault();
+  const [dx, dy] = DELTA[m], [cx, cy] = DELTA[dir];
+  if (dx !== -cx || dy !== -cy) queued = m;
+});
+let touch = null;
+$('board').addEventListener('pointerdown', (e) => { touch = [e.clientX, e.clientY]; });
+$('board').addEventListener('pointerup', (e) => {
+  if (!touch || mode !== 'human') return;
+  const dx = e.clientX - touch[0], dy = e.clientY - touch[1];
+  if (Math.max(Math.abs(dx), Math.abs(dy)) > 20) queued = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : (dy > 0 ? 'down' : 'up');
+});
+
+// ── Load ────────────────────────────────────────────────────────────────────
+$('load').addEventListener('click', async () => {
+  $('load').disabled = true;
+  $('prog').hidden = false;
+  $('log').textContent = '';
+  log(`loading open-jev on ${$('device').value}…`);
+  const seen = new Set();
+  try {
+    await decider?.dispose();
+    const t0 = performance.now();
+    decider = await NexusDecider.load(undefined, {
+      transformers,
+      device: $('device').value,
+      onProgress: (p) => {
+        if (p.status === 'progress' && p.file) {
+          $('prog').value = p.progress ?? 0;
+          if (!seen.has(p.file)) { seen.add(p.file); log('↓ ' + p.file); }
+        }
+      },
+    });
+    // The first pass compiles the shaders; keep it out of the per-move numbers.
+    const warm = await decider.systemOne('Warm-up.', { ok: { type: 'noul', instructions: 'This is a warm-up.' } });
+    log(`✓ ready in ${((performance.now() - t0) / 1000).toFixed(1)}s — ${decider.device}/${decider.dtype}, warm-up ${warm.ms} ms`);
+    $('play').disabled = false;
+  } catch (e) {
+    log('✗ ' + (e?.message ?? e));
+    if (!navigator.gpu && $('device').value === 'webgpu') log('  this browser has no WebGPU — pick CPU (wasm) instead.');
+  } finally {
+    $('prog').hidden = true;
+    $('load').disabled = false;
+  }
+});
+
+$('play').addEventListener('click', () => start('jev'));
+$('human').addEventListener('click', () => start('human'));
+$('pause').addEventListener('click', stop);
+$('restart').addEventListener('click', () => {
+  const was = mode;
+  stop();
+  reset();
+  if (was) start(was);
+});
+
+$('copyCode').addEventListener('click', async () => {
+  try {
+    await navigator.clipboard.writeText($('code').textContent);
+    $('copyCode').textContent = 'Copied';
+  } catch {
+    $('copyCode').textContent = 'Select and copy';
+  }
+  setTimeout(() => ($('copyCode').textContent = 'Copy'), 1800);
+});
+
+reset();
+renderStats();
+renderCode(describe(), MOVES.filter((m) => !blocked(m)), null);
+window.__snake = { get decider() { return decider; }, stats, start, stop, reset, describe, get state() { return { snake, food, score, alive, mode }; } };
+</script>
+</body>
+</html>

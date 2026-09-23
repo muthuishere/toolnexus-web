@@ -84,6 +84,23 @@
   .diag pre { margin: 2px 0 0; white-space: pre-wrap; word-break: break-word; max-height: 150px; overflow: auto; }
   .diag .ok { color: var(--ok); }
   .diag .bad { color: var(--warn); }
+  .packs { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; margin: 0 0 12px; }
+  .pack {
+    text-align: left; background: #16171a; color: var(--fg); border: 1px solid var(--line);
+    padding: 10px 12px; font-weight: 400; font-size: 13px;
+  }
+  .pack b { display: block; font-size: 13px; margin-bottom: 2px; }
+  .pack span { display: block; font-size: 11.5px; color: var(--dim); line-height: 1.4; }
+  .pack.on { border-color: var(--accent); background: rgba(52,120,246,.1); }
+  .pack.on b { color: var(--accent-soft); }
+  #packNote { font-size: 12.5px; color: var(--accent-soft); margin: 0 0 10px; }
+  #suggest button, #dpresets button { flex: 0 1 auto; font-weight: 400; font-size: 13px; padding: 7px 12px; }
+  .dbar { display: grid; grid-template-columns: minmax(0, 200px) 1fr 60px; gap: 10px; align-items: center; font: 12.5px var(--mono); margin: 5px 0; }
+  .dbar span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .dbar .track { height: 12px; background: #16171a; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+  .dbar .fill { height: 100%; background: var(--accent); }
+  .dbar.top .fill { background: var(--ok); }
+  .dbar .p { text-align: right; color: var(--accent-soft); }
 </style>
 </head>
 <body>
@@ -187,7 +204,9 @@
   </fieldset>
 
   <fieldset>
-    <legend>2 · Your tools — one JS file, edit it live</legend>
+    <legend>2 · Pick an example — or write your own tools</legend>
+    <div class="packs" id="packs"></div>
+    <p id="packNote"></p>
     <p class="hint" style="margin:0 0 8px">
       Every tool the model can call is defined here, in one file. Change it, hit
       <strong>Apply tools</strong>, and the model picks it up on the next question — no reload,
@@ -196,26 +215,23 @@
     <textarea id="toolsrc" spellcheck="false" rows="18"></textarea>
     <div class="row" style="margin-top:10px">
       <div style="flex:0 0 auto"><button id="apply">Apply tools</button></div>
-      <div style="flex:0 0 auto"><button class="ghost" id="reset">Reset to sample</button></div>
+      <div style="flex:0 0 auto"><button class="ghost" id="reset">Reset this example</button></div>
       <div id="toolStatus" class="hint" style="align-self:center"></div>
     </div>
   </fieldset>
 
   <fieldset>
-    <legend>3 · Ask it something that needs a tool</legend>
+    <legend>3 · Chat — ask something that needs a tool</legend>
     <div id="chat"><p class="placeholder">Load a model, then press Ask. The question is prefilled and the tools above are already live — the model has to call one to answer correctly.</p></div>
     <div class="row">
       <input type="text" id="q" value="What's the weather in Chennai?" disabled />
       <div style="flex:0 0 auto"><button id="ask" disabled>Ask</button></div>
+      <div style="flex:0 0 auto"><button class="ghost" id="newChat">New chat</button></div>
     </div>
-    <div class="row" style="margin-top:8px">
-      <button class="ghost" data-q="What's the weather in Chennai?">weather</button>
-      <button class="ghost" data-q="What time is it in Tokyo right now?">time</button>
-      <button class="ghost" data-q="What is 4831 multiplied by 227?">math</button>
-    </div>
+    <div class="row" id="suggest" style="margin-top:8px"></div>
     <p class="hint">
-      The answers are deliberately unguessable — the model can only get them right by calling a tool.
-      Watch the tool log on the right.
+      The chat remembers earlier turns — follow-up questions work. Picking another example starts a
+      new chat, since the tools change. Watch the tool log on the right.
     </p>
 
     <details id="diagWrap" open>
@@ -231,7 +247,33 @@
   </fieldset>
 
   <fieldset>
-    <legend>4 · Your documents — retrieval, offline</legend>
+    <legend>4 · Decide — Jev-style, nothing generated</legend>
+    <p class="hint" style="margin:0 0 10px">
+      A System One decision: the model reads your state and options once, and the probability of
+      each option comes straight from its next-token logits. No text is generated, so nothing is
+      parsed and the answer can only be one of your options. Same loaded model, one call:
+      <code>chat.decide(state, options)</code>.
+      <a href="./jev-snake.html" style="color:var(--accent-soft)">Watch it play Snake →</a>
+    </p>
+    <div class="row" id="dpresets" style="margin-bottom:10px">
+      <button class="ghost" data-preset="email">email triage</button>
+      <button class="ghost" data-preset="support">support routing</button>
+      <button class="ghost" data-preset="review">sentiment</button>
+      <button class="ghost" data-preset="urgent">yes / no</button>
+    </div>
+    <label for="dstate">State and question</label>
+    <textarea id="dstate" rows="3"></textarea>
+    <label for="dopts">Options — one per line, 2 to 26</label>
+    <textarea id="dopts" rows="3"></textarea>
+    <div class="row" style="margin-top:10px">
+      <div style="flex:0 0 auto"><button id="decide" disabled>Decide</button></div>
+      <div id="dstatus" class="hint" style="align-self:center">Load a model first.</div>
+    </div>
+    <div id="dbars" style="margin-top:10px"></div>
+  </fieldset>
+
+  <fieldset>
+    <legend>5 · Your documents — retrieval, offline</legend>
     <details id="ragWrap">
       <summary style="cursor:pointer;font-size:13px;color:var(--accent-soft)">
         Ask questions about text you paste — no server, nothing uploaded
@@ -260,7 +302,7 @@
   </fieldset>
 
   <fieldset>
-    <legend>5 · Use it in your app — copy this</legend>
+    <legend>6 · Use it in your app — copy this</legend>
     <p class="hint" style="margin:0 0 8px">
       This is the exact code for what you have selected above. It updates as you change the source,
       the backend, or your tools.
@@ -292,7 +334,7 @@
   </div>
   <p class="hint" id="cacheHint">
     Weights are cached by the browser after the first load, so a reload is instant.
-    Deleting clears the cached model files <em>and</em> the tools you saved here.
+    Deleting clears the cached model files <em>and</em> the tools and notes you saved here.
   </p>
 </aside>
 
@@ -305,7 +347,7 @@
 {
   "imports": {
     "@huggingface/transformers": "https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.8.1",
-    "toolnexus-web": "https://cdn.jsdelivr.net/npm/toolnexus-web@0.8.0/dist/index.js",
+    "toolnexus-web": "https://cdn.jsdelivr.net/npm/toolnexus-web@0.9.0/dist/index.js",
     "fflate": "https://cdn.jsdelivr.net/npm/fflate@0.8.2/+esm"
   }
 }
@@ -374,10 +416,22 @@ function readSource() {
   return { archive: f };
 }
 
-// ── The tools live in one editable JS file. `tool(...)` is injected by
-//    chat.evalTools() — the decorator pattern as a function. Deliberately
-//    unguessable values, so a correct answer proves a real call happened. ──
-const SAMPLE_TOOLS = `// Every tool the model can call. Edit freely, then "Apply tools".
+// ── Examples. Each is one editable tools file plus questions only a tool can
+//    answer. `tool(...)` is injected by chat.evalTools() — the decorator
+//    pattern as a function. A few tools per example on purpose: a 0.5B model
+//    picks reliably from three names, not from thirty. ──
+const PACKS = [
+{
+  id: 'basics',
+  title: 'Basics',
+  blurb: 'weather, time, exact math',
+  note: 'Deliberately unguessable values, so a correct answer proves a real call happened.',
+  questions: [
+    ['weather', "What's the weather in Chennai?"],
+    ['time', 'What time is it in Tokyo right now?'],
+    ['math', 'What is 4831 multiplied by 227?'],
+  ],
+  code: `// Every tool the model can call. Edit freely, then "Apply tools".
 // tool(name, description, params, handler)
 
 tool('get_weather', 'Get the current weather for a city. Use this for any weather question.',
@@ -405,10 +459,289 @@ tool('multiply', 'Multiply two numbers exactly. Use this for arithmetic — neve
 // tool('get_stock', 'Look up a stock price by ticker.',
 //   { ticker: 'string' },
 //   async ({ ticker }) => ({ ticker, price: 431.20 }));
-`;
+`,
+},
+{
+  id: 'js',
+  title: 'JavaScript eval',
+  blurb: 'the model writes code, a worker runs it',
+  note: 'A code interpreter in the tab. The code runs in a Web Worker — no access to this page — and is killed after 3 seconds.',
+  questions: [
+    ['fibonacci', 'Use JavaScript to find the 30th Fibonacci number.'],
+    ['primes', 'Use JavaScript to add up every prime number below 10000.'],
+    ['reverse', "Use JavaScript to reverse the string 'toolnexus-web'."],
+    ['dates', 'Use JavaScript to count the days from 2000-01-01 to 2026-09-23.'],
+  ],
+  code: `// JavaScript eval: the model writes code, a Web Worker runs it.
+// The worker cannot touch this page, and it is killed after 3 seconds,
+// so an infinite loop costs nothing.
+
+tool('run_js', 'Run JavaScript and return the value of the last expression. Use this for any calculation, counting, string or date work. Never compute the answer yourself.',
+  { code: 'string' },
+  ({ code }) => new Promise((resolve) => {
+    const src = 'onmessage = async (e) => {' +
+      ' const logs = []; console.log = (...a) => logs.push(a.join(" "));' +
+      ' try { let v = (0, eval)(e.data); if (v && typeof v.then === "function") v = await v;' +
+      '   postMessage({ result: typeof v === "bigint" ? String(v) : v, logs }); }' +
+      ' catch (err) { postMessage({ error: String(err), logs }); } };';
+    const url = URL.createObjectURL(new Blob([src], { type: 'text/javascript' }));
+    const worker = new Worker(url);
+    const done = (out) => { clearTimeout(timer); worker.terminate(); URL.revokeObjectURL(url); resolve(out); };
+    const timer = setTimeout(() => done({ error: 'timed out after 3 seconds' }), 3000);
+    worker.onmessage = (e) => done(e.data);
+    worker.onerror = (e) => { e.preventDefault(); done({ error: e.message }); };
+    worker.postMessage(String(code));
+  }));
+`,
+},
+{
+  id: 'tab',
+  title: 'This tab',
+  blurb: 'tools only a browser has',
+  note: 'Tools no server-side agent can have: they read and change the page you are looking at.',
+  questions: [
+    ['accent', 'Change the page accent color to orange.'],
+    ['count', 'How many buttons are on this page?'],
+    ['browser', 'What language and timezone is my browser set to?'],
+  ],
+  code: `// Tools that exist only because the model runs in a browser tab.
+
+tool('page_info', 'Get facts about this browser tab: title, language, timezone, screen and window size, CPU cores, online status.',
+  {},
+  async () => ({
+    title: document.title,
+    language: navigator.language,
+    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+    screen: screen.width + 'x' + screen.height,
+    window: innerWidth + 'x' + innerHeight,
+    cores: navigator.hardwareConcurrency,
+    online: navigator.onLine,
+  }));
+
+tool('set_accent_color', 'Change the accent color of this page. Accepts a CSS color name or a hex code.',
+  { color: 'string' },
+  async ({ color }) => {
+    if (!CSS.supports('color', color)) return { error: color + ' is not a CSS color' };
+    document.documentElement.style.setProperty('--accent', color);
+    document.documentElement.style.setProperty('--accent-soft', color);
+    return { accent: color };
+  });
+
+tool('count_elements', 'Count the elements on this page that match a CSS selector, for example "button" or "h1".',
+  { selector: 'string' },
+  async ({ selector }) => ({ selector, count: document.querySelectorAll(selector).length }));
+`,
+},
+{
+  id: 'crypto',
+  title: 'Crypto & encoding',
+  blurb: 'SHA-256, base64, UUIDs',
+  note: 'Web Crypto, in the tab. A hash is the purest test there is: no model can guess one.',
+  questions: [
+    ['sha-256', "What is the SHA-256 hash of 'hello world'?"],
+    ['base64', "Base64-encode the text 'toolnexus-web'."],
+    ['uuid', 'Generate a new UUID for me.'],
+  ],
+  code: `// Web Crypto and encoding. The answers cannot be guessed, only computed.
+
+tool('sha256', 'Compute the SHA-256 hash of a text, returned as hex.',
+  { text: 'string' },
+  async ({ text }) => {
+    const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(String(text)));
+    return { text, sha256: [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, '0')).join('') };
+  });
+
+tool('base64', 'Encode text to base64, or decode base64 back to text.',
+  { text: 'string', mode: { type: 'string', enum: ['encode', 'decode'] } },
+  async ({ text, mode }) => {
+    if (mode === 'decode') {
+      const bytes = Uint8Array.from(atob(String(text)), (c) => c.charCodeAt(0));
+      return { text: new TextDecoder().decode(bytes) };
+    }
+    const bytes = new TextEncoder().encode(String(text));
+    return { base64: btoa(String.fromCharCode(...bytes)) };
+  });
+
+tool('uuid', 'Generate a new random UUID.',
+  {},
+  async () => ({ uuid: crypto.randomUUID() }));
+`,
+},
+{
+  id: 'notes',
+  title: 'Notes',
+  blurb: 'memory that survives a reload',
+  note: 'Saved in this browser only. Save a note, reload the page, and ask for it back.',
+  questions: [
+    ['save', 'Save a note titled groceries: milk, eggs, rice.'],
+    ['list', 'What notes have I saved?'],
+    ['read', 'What is in my groceries note?'],
+  ],
+  code: `// Notes kept in localStorage: the model's memory outlives the page.
+
+const KEY = 'nexus-demo-notes';
+const load = () => JSON.parse(localStorage.getItem(KEY) || '{}');
+const store = (notes) => localStorage.setItem(KEY, JSON.stringify(notes));
+
+tool('save_note', 'Save a note under a title. A note with the same title is replaced.',
+  { title: 'string', text: 'string' },
+  async ({ title, text }) => {
+    const notes = load();
+    notes[String(title).toLowerCase()] = String(text);
+    store(notes);
+    return { saved: title };
+  });
+
+tool('list_notes', 'List the titles of all saved notes.',
+  {},
+  async () => ({ titles: Object.keys(load()) }));
+
+tool('read_note', 'Read a saved note by its title.',
+  { title: 'string' },
+  async ({ title }) => {
+    const text = load()[String(title).toLowerCase()];
+    return text == null ? { error: 'no note titled ' + title } : { title, text };
+  });
+`,
+},
+{
+  id: 'dates',
+  title: 'Dates & units',
+  blurb: 'day counts, weekdays, conversions',
+  note: 'The arithmetic small models get subtly wrong, done by code instead.',
+  questions: [
+    ['days', 'How many days are there from 2026-01-01 to 2026-12-25?'],
+    ['weekday', 'What day of the week was 1969-07-20?'],
+    ['convert', 'Convert 26.2 miles to kilometers.'],
+    ['temp', 'Convert 72 fahrenheit to celsius.'],
+  ],
+  code: `// Dates and unit conversions.
+
+tool('days_between', 'Count the days between two dates written as YYYY-MM-DD.',
+  { from: 'string', to: 'string' },
+  async ({ from, to }) => {
+    const a = Date.parse(from), b = Date.parse(to);
+    if (Number.isNaN(a) || Number.isNaN(b)) return { error: 'dates must be YYYY-MM-DD' };
+    return { from, to, days: Math.round((b - a) / 86400000) };
+  });
+
+tool('weekday', 'Get the day of the week for a date written as YYYY-MM-DD.',
+  { date: 'string' },
+  async ({ date }) => {
+    const d = new Date(String(date) + 'T00:00:00Z');
+    if (Number.isNaN(d.getTime())) return { error: 'date must be YYYY-MM-DD' };
+    return { date, weekday: d.toLocaleDateString('en-GB', { weekday: 'long', timeZone: 'UTC' }) };
+  });
+
+tool('convert_units', 'Convert a value between units of length, weight or temperature: km, mi, m, ft, kg, lb, c, f.',
+  { value: 'number', from: 'string', to: 'string' },
+  async ({ value, from, to }) => {
+    const alias = { kilometers: 'km', kilometer: 'km', miles: 'mi', mile: 'mi', meters: 'm', meter: 'm',
+      feet: 'ft', foot: 'ft', kilograms: 'kg', kilogram: 'kg', pounds: 'lb', pound: 'lb',
+      celsius: 'c', fahrenheit: 'f' };
+    const unit = (u) => alias[String(u).toLowerCase()] ?? String(u).toLowerCase();
+    const f = unit(from), t = unit(to), v = Number(value);
+    if (f === 'c' && t === 'f') return { value: +(v * 9 / 5 + 32).toFixed(2), unit: 'f' };
+    if (f === 'f' && t === 'c') return { value: +((v - 32) * 5 / 9).toFixed(2), unit: 'c' };
+    const base = { km: [1000, 'm'], mi: [1609.344, 'm'], m: [1, 'm'], ft: [0.3048, 'm'], kg: [1, 'kg'], lb: [0.45359237, 'kg'] };
+    const a = base[f], b = base[t];
+    if (!a || !b || a[1] !== b[1]) return { error: 'cannot convert ' + from + ' to ' + to };
+    return { value: +(v * a[0] / b[0]).toFixed(3), unit: t };
+  });
+`,
+},
+{
+  id: 'web',
+  title: 'Live web',
+  blurb: 'GitHub, Hacker News, Wikipedia',
+  note: "These tools call public APIs. The model still runs in this tab — only each tool's own request leaves it.",
+  questions: [
+    ['github', 'How many GitHub stars does muthuishere/toolnexus have?'],
+    ['hacker news', 'What are the top stories on Hacker News right now?'],
+    ['wikipedia', 'What does Wikipedia say about WebGPU?'],
+  ],
+  code: `// Tools that fetch live data. The model is local; only these requests leave the tab.
+
+tool('github_repo', 'Look up a GitHub repository written as owner/name: stars, description, language.',
+  { repo: 'string' },
+  async ({ repo }) => {
+    const r = await fetch('https://api.github.com/repos/' + String(repo).trim());
+    if (!r.ok) return { error: 'GitHub answered ' + r.status };
+    const j = await r.json();
+    return { repo: j.full_name, stars: j.stargazers_count, description: j.description, language: j.language };
+  });
+
+tool('hacker_news_top', 'Get the current top three stories on Hacker News.',
+  {},
+  async () => {
+    const base = 'https://hacker-news.firebaseio.com/v0/';
+    const ids = await (await fetch(base + 'topstories.json')).json();
+    const items = await Promise.all(ids.slice(0, 3).map((id) => fetch(base + 'item/' + id + '.json').then((r) => r.json())));
+    return { stories: items.map((s) => ({ title: s.title, points: s.score })) };
+  });
+
+tool('wikipedia_summary', 'Get the Wikipedia summary of a topic.',
+  { topic: 'string' },
+  async ({ topic }) => {
+    const title = encodeURIComponent(String(topic).trim().replace(/ /g, '_'));
+    const r = await fetch('https://en.wikipedia.org/api/rest_v1/page/summary/' + title);
+    if (!r.ok) return { error: 'no Wikipedia page for ' + topic };
+    const j = await r.json();
+    return { title: j.title, summary: j.extract };
+  });
+`,
+},
+{
+  id: 'plain',
+  title: 'Just chat',
+  blurb: 'no tools, plain conversation',
+  note: 'No tools registered, so this is an ordinary chat with the model in the tab.',
+  questions: [
+    ['haiku', 'Write a haiku about a browser tab.'],
+    ['explain', 'Explain WebGPU in two sentences.'],
+    ['names', 'Suggest three names for a coffee shop run by robots.'],
+  ],
+  code: `// No tools: an ordinary chat with the model running in this tab.
+// Add a tool(...) here and it becomes a tool-calling chat again.
+`,
+},
+];
 
 const SAVED = 'nexus-demo-tools';
-$('toolsrc').value = localStorage.getItem(SAVED) ?? SAMPLE_TOOLS;
+const SAVED_PACK = 'nexus-demo-pack';
+let pack = PACKS.find((p) => p.id === localStorage.getItem(SAVED_PACK)) ?? PACKS[0];
+$('toolsrc').value = localStorage.getItem(SAVED) ?? pack.code;
+
+function renderPacks() {
+  $('packs').innerHTML = PACKS.map((p) =>
+    `<button class="pack${p === pack ? ' on' : ''}" data-pack="${p.id}"><b>${p.title}</b><span>${p.blurb}</span></button>`,
+  ).join('');
+  $('packNote').textContent = pack.note;
+  $('suggest').innerHTML = pack.questions
+    .map(([label, q]) => `<button class="ghost" data-q="${q.replace(/"/g, '&quot;')}">${label}</button>`)
+    .join('');
+  $('q').value = pack.questions[0][1];
+}
+
+/** Switch examples: new tools, new questions, and a fresh conversation —
+ *  history that mentions tools which no longer exist only confuses a small model. */
+async function selectPack(id) {
+  pack = PACKS.find((p) => p.id === id) ?? PACKS[0];
+  localStorage.setItem(SAVED_PACK, pack.id);
+  $('toolsrc').value = pack.code;
+  renderPacks();
+  newChat();
+  await applyTools();
+}
+
+$('packs').addEventListener('click', (e) => {
+  const b = e.target.closest('[data-pack]');
+  if (b) selectPack(b.dataset.pack);
+});
+$('suggest').addEventListener('click', (e) => {
+  const b = e.target.closest('[data-q]');
+  if (b && !$('ask').disabled) ask(b.dataset.q);
+});
 
 /** Register whatever the editor currently defines. Replaces the whole set. */
 async function applyTools() {
@@ -420,15 +753,19 @@ async function applyTools() {
   }
   try {
     const names = await chat.evalTools(code);
-    $('toolList').innerHTML = names.map((n) => `<li><span class="n">${n}</span></li>`).join('');
-    $('toolStatus').innerHTML = `<span style="color:var(--ok)">✓ ${names.length} tool${names.length === 1 ? '' : 's'} live</span>`;
+    $('toolList').innerHTML = names.length
+      ? names.map((n) => `<li><span class="n">${n}</span></li>`).join('')
+      : '<li style="color:var(--dim)">none — plain chat</li>';
+    $('toolStatus').innerHTML = names.length
+      ? `<span style="color:var(--ok)">✓ ${names.length} tool${names.length === 1 ? '' : 's'} live</span>`
+      : '<span style="color:var(--ok)">✓ no tools — plain chat</span>';
   } catch (e) {
     $('toolStatus').innerHTML = `<span style="color:var(--warn)">✗ ${e.message}</span>`;
   }
 }
 
 $('apply').addEventListener('click', applyTools);
-$('reset').addEventListener('click', () => { $('toolsrc').value = SAMPLE_TOOLS; applyTools(); });
+$('reset').addEventListener('click', () => { $('toolsrc').value = pack.code; applyTools(); });
 
 // ── Load ─────────────────────────────────────────────────────────────────────
 let chat = null;
@@ -518,6 +855,8 @@ $('load').addEventListener('click', async () => {
 
     $('q').disabled = $('ask').disabled = false;
     ragEnable(true);          // documents can only be indexed once a model exists
+    $('decide').disabled = false;
+    $('dstatus').textContent = 'Ready — press Decide.';
     $('indexStatus').textContent = 'Ready — press Index documents.';
     $('chat').innerHTML = '<p class="placeholder">Ready. Ask something a tool has to answer.</p>';
     refreshMetrics();
@@ -624,10 +963,18 @@ async function ask(text) {
 }
 
 $('ask').addEventListener('click', () => ask($('q').value));
-$('q').addEventListener('keydown', (e) => { if (e.key === 'Enter') ask($('q').value); });
-for (const b of document.querySelectorAll('button[data-q]')) {
-  b.addEventListener('click', () => ask(b.dataset.q));
+$('q').addEventListener('keydown', (e) => { if (e.key === 'Enter' && !$('ask').disabled) ask($('q').value); });
+
+function newChat() {
+  chat?.reset();
+  rounds = [];
+  renderDiag();
+  $('calls').innerHTML = '<li style="color:var(--dim)">none yet</li>';
+  $('chat').innerHTML = chat
+    ? '<p class="placeholder">New chat. Ask something — or pick a suggestion below.</p>'
+    : '<p class="placeholder">Load a model, then press Ask.</p>';
 }
+$('newChat').addEventListener('click', newChat);
 
 function refreshMetrics() {
   const s = chat?.metrics?.summary?.() ?? {};
@@ -704,6 +1051,7 @@ for (const el of ['sourceKind', 'hub', 'base', 'baseId', 'url', 'device', 'dtype
 }
 applyQuery();
 refreshSnippet();
+renderPacks();
 
 // ── Cache: what's stored, and a real delete ──────────────────────────────────
 // The library caches model files under 'transformers-cache' (exported as
@@ -739,17 +1087,22 @@ $('cacheRefresh').addEventListener('click', refreshCache);
 
 $('cacheClear').addEventListener('click', async () => {
   const files = await refreshCache();
-  if (!confirm(`Delete every cached model file (${files ?? 0}) and your saved tools?\n\nThe next load will download the weights again.`)) return;
+  if (!confirm(`Delete every cached model file (${files ?? 0}), your saved tools and your notes?\n\nThe next load will download the weights again.`)) return;
 
   $('cacheClear').disabled = true;
   try {
     for (const name of await caches.keys()) await caches.delete(name);   // the weights
-    localStorage.removeItem(SAVED);                                       // the saved tools
-    $('toolsrc').value = SAMPLE_TOOLS;
+    for (const k of [SAVED, SAVED_PACK, 'nexus-demo-notes']) localStorage.removeItem(k);   // tools, example, notes
+    pack = PACKS[0];
+    $('toolsrc').value = pack.code;
+    renderPacks();
     chat = null;
     kb = null;                // the knowledge base holds the old chat model
     ragEnable(false);
     $('indexStatus').textContent = 'Load a model first.';
+    $('decide').disabled = true;
+    $('dstatus').textContent = 'Load a model first.';
+    $('dbars').innerHTML = '';
     $('kanswer').innerHTML = '<p class="placeholder">Index, then ask.</p>';
     $('retrieved').innerHTML = '';
     $('q').disabled = $('ask').disabled = true;
@@ -769,6 +1122,58 @@ $('cacheClear').addEventListener('click', async () => {
 });
 
 refreshCache();
+
+// ── Decide: Jev-style direct readout ────────────────────────────────────────
+// No generation: one forward pass, then the logits of the option letters are
+// normalized over the options given. The answer cannot be anything else.
+const DECISIONS = {
+  email: {
+    state: 'Email: Payroll asks for your password on a non-company sign-in page.\nWhat kind of email is this?',
+    options: ['Legitimate', 'Spam', 'Phishing'],
+  },
+  support: {
+    state: 'A customer says a password reset succeeded, but every login attempt still returns "account locked". Two unlock emails were requested and neither arrived.\nWhich queue should handle this request?',
+    options: ['Account access support', 'Billing support', 'Close as resolved'],
+  },
+  review: {
+    state: 'Review: "Arrived two days late and the box was dented, but honestly the headphones sound amazing."\nWhat is the overall sentiment?',
+    options: ['Positive', 'Mixed', 'Negative'],
+  },
+  urgent: {
+    state: 'Message: "Prod database is at 98% disk and climbing, writes will start failing within the hour."\nDoes this need someone right now?',
+    options: ['Yes', 'No'],
+  },
+};
+
+function preset(name) {
+  const p = DECISIONS[name];
+  $('dstate').value = p.state;
+  $('dopts').value = p.options.join('\n');
+}
+preset('email');
+$('dpresets').addEventListener('click', (e) => {
+  const b = e.target.closest('[data-preset]');
+  if (b) preset(b.dataset.preset);
+});
+
+$('decide').addEventListener('click', async () => {
+  if (!chat) return;
+  const options = $('dopts').value.split('\n').map((s) => s.trim()).filter(Boolean);
+  $('decide').disabled = true;
+  $('dstatus').textContent = 'reading the logits…';
+  try {
+    const d = await chat.decide($('dstate').value.trim(), options);
+    $('dbars').innerHTML = d.options
+      .map((o) => `<div class="dbar${o.choice === d.choice ? ' top' : ''}"><span title="${escHtml(o.choice)}">${o.label}. ${escHtml(o.choice)}</span><div class="track"><div class="fill" style="width:${(o.probability * 100).toFixed(1)}%"></div></div><span class="p">${(o.probability * 100).toFixed(1)}%</span></div>`)
+      .join('');
+    $('dstatus').innerHTML = `<span style="color:var(--ok)">✓ ${escHtml(d.choice)}</span> — one forward pass, ${d.ms} ms, ${d.inputTokens} input tokens, 0 generated`;
+    refreshMetrics();
+  } catch (e) {
+    $('dstatus').innerHTML = `<span style="color:var(--warn)">✗ ${escHtml(e.message)}</span>`;
+  } finally {
+    $('decide').disabled = false;
+  }
+});
 
 // ── Documents: retrieval over text you paste ────────────────────────────────
 // Deliberately separate from the tool loop above. It reuses the SAME loaded
@@ -852,7 +1257,7 @@ $('kexport').addEventListener('click', async () => {
 });
 
 // Expose for scripted checks.
-window.__nexus = { get chat() { return chat; }, get kb() { return kb; }, ask, applyTools, refreshCache };
+window.__nexus = { get chat() { return chat; }, get kb() { return kb; }, ask, applyTools, refreshCache, selectPack, newChat, PACKS };
 </script>
 </body>
 </html>

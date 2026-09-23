@@ -1,0 +1,82 @@
+---
+title: Decisions, Jev-style
+description: System One decisions in the browser — a state, typed questions, the options you allow, and one forward pass that returns a probability for each. Nothing generated, nothing parsed.
+---
+
+A **System One decision** is the fast kind: read the situation, pick one of the allowed options,
+say how sure you are. [Jev](https://github.com/yibie/awesome-jev) made the shape popular — send a
+state and typed questions, get back a typed answer with a calibrated probability for every
+option. No text is generated, so there is nothing to parse and no way to answer outside the
+options you gave.
+
+toolnexus-web does this in the tab, on WebGPU or CPU.
+
+**[Watch it play Snake →](/toolnexus-web/demo/jev-snake.html)** — every move is one decision,
+and the page shows the exact call it just made.
+
+## A model trained to decide — `NexusDecider`
+
+```ts
+import { NexusDecider } from 'toolnexus-web';
+
+// open-jev: DeBERTa-v3, trained only on typed decisions. 348 MB (q4f16) on WebGPU.
+const decider = await NexusDecider.load();
+
+const { answers, ms } = await decider.systemOne(ticket, {
+  team:   { type: 'choice', instructions: 'Which team handles this?', options: ['billing', 'support', 'sales'] },
+  urgent: { type: 'noul',   instructions: 'The customer needs help right now.' },
+  mood:   { type: 'score',  instructions: 'How upset is the customer?', options: ['calm', 'annoyed', 'furious'] },
+});
+
+answers.team.choice;          // 'billing'
+answers.team.probabilities;   // { billing: 0.94, support: 0.03, sales: 0.03 }
+answers.urgent.noul;          // 0.12  — P(true)
+answers.mood.score;           // 1.4   — expected level, 0 = first option
+```
+
+Every question is answered in the **same forward pass**. The state can be a string or an object
+(serialized as JSON) and is cut to 256 tokens; the whole input is capped at 512.
+
+`NexusDecider` needs Transformers.js 4.x and loads it itself. The version the chat side uses
+(3.8.1) ships an ONNX Runtime that rejects this model's graph with a bare exception and no
+message — `NexusDecider` names that failure instead of passing the number through.
+
+The model's authors measure **0.854 accuracy in-domain and 0.690 on unseen instructions and
+option sets**, with calibrated confidence (ECE 0.022). Out of distribution, measure on your own
+data before trusting it.
+
+## Any chat model — `chat.decide()`
+
+The lighter path: no second model, just the chat model you already loaded. Options are labelled
+A, B, C… and scored by the logit of each letter at the start of the answer.
+
+```ts
+const d = await chat.decide(
+  'Email: Payroll asks for your password on a non-company sign-in page.',
+  ['Legitimate', 'Spam', 'Phishing'],
+);
+d.choice;    // always one of the three
+d.options;   // [{ choice, label, probability, logprob, logit }, …]
+```
+
+It reproduces the published readout from
+["Jev in 25 lines of Python"](https://www.nobodywho.ai/posts/jev-in-25-lines/) exactly, and runs
+in about 46 ms on WebGPU for a 50-token prompt. The conversation history is not touched.
+
+## Which one — measured, not assumed
+
+Same 60 random Snake boards, WebGPU, one decision each: *which way gets the snake closer to the
+food?*
+
+| Engine | Toward the food | Per decision |
+|---|---|---|
+| `chat.decide()` on Qwen3-0.6B | 45% | ~66 ms |
+| a random move that does not crash | 49% | — |
+| **`NexusDecider` (open-jev)** | **100%** | **36 ms** |
+
+A small chat model is fast at this and weak at it — SemIf measured Qwen3-0.6B at 40.7% agreement
+with Jev on its public subset. Use `chat.decide()` when a second download is not worth it and the
+choice is easy; use `NexusDecider` when the decision matters.
+
+Wording matters too: for the model above, *"the food is 3 to the right and 2 up"* scored 100%,
+and *"the food is up and right"* scored 47%. Measure your phrasing the same way.

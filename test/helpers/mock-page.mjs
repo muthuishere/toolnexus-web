@@ -66,6 +66,15 @@ export function mockChatClass({ script = ['answer'], device = 'wasm', dtype = 'q
         detail: 'stub/model (wasm/q4) calls tools correctly.',
       };
     }
+    reset() { this.resets = (this.resets ?? 0) + 1; }
+    async decide(prompt, choices) {
+      (this.decided ??= []).push({ prompt, choices });
+      if (state.decideError) throw new Error(state.decideError);
+      const w = choices.map((_, i) => i + 1), sum = w.reduce((a, b) => a + b, 0);
+      const options = choices.map((choice, i) => ({ choice, label: String.fromCharCode(65 + i), probability: w[i] / sum, logprob: 0, logit: 0 }));
+      const best = options.at(-1);
+      return { choice: best.choice, probability: best.probability, options, ms: 42, inputTokens: 50 };
+    }
     async chat(text) {
       this.asked.push(text);
       return script[Math.min(this.asked.length - 1, script.length - 1)];
@@ -154,7 +163,7 @@ export async function loadPage({ chatClass, knowledge, caches: cacheSeed = {} } 
     state,
     knowledge: kn.state,
     $: (id) => window.document.getElementById(id),
-    click: (id) => window.document.getElementById(id).dispatchEvent(new window.Event('click')),
+    click: (id) => window.document.getElementById(id).dispatchEvent(new window.Event('click', { bubbles: true })),
     fire: (id, type) => window.document.getElementById(id).dispatchEvent(new window.Event(type, { bubbles: true })),
     /** Wait for the page's async handlers to finish. */
     settle: () => new Promise((r) => setTimeout(r, 5)),
