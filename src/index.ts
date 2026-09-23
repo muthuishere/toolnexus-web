@@ -1,4 +1,4 @@
-// browser-llm-nexus — run LLMs in the browser, GPU or CPU, same API.
+// toolnexus-web — run LLMs in the browser, GPU or CPU, same API.
 //
 // Three independently portable artifacts, each with its own export/import:
 //   • chat model     — exportModel / importModel / NexusChat.fromArchive

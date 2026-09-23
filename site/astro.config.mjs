@@ -3,21 +3,21 @@ import { defineConfig } from 'astro/config';
 import starlight from '@astrojs/starlight';
 import starlightLlmsTxt from 'starlight-llms-txt';
 
-// Project GitHub Pages: https://muthuishere.github.io/browser-llm-nexus
+// Project GitHub Pages: https://muthuishere.github.io/toolnexus-web
 // https://astro.build/config
 export default defineConfig({
 	site: 'https://muthuishere.github.io',
-	base: '/browser-llm-nexus',
+	base: '/toolnexus-web',
 	integrations: [
 		starlight({
-			title: 'browser-llm-nexus',
+			title: 'toolnexus-web',
 			// Remove the right-hand "On this page" table of contents site-wide.
 			tableOfContents: false,
 			description:
 				'Private LLM in any browser. GPU optional. Tool calling, embeddings, RAG and offline knowledge bundles over Transformers.js — no server, no bundled weights.',
 			plugins: [
 				starlightLlmsTxt({
-					projectName: 'browser-llm-nexus',
+					projectName: 'toolnexus-web',
 					description:
 						'Run an LLM in the browser — WebGPU when available, CPU otherwise. Tool calling, embeddings, RAG, and offline bundles.',
 					details:
@@ -29,7 +29,7 @@ export default defineConfig({
 				{
 					icon: 'github',
 					label: 'GitHub',
-					href: 'https://github.com/muthuishere/browser-llm-nexus',
+					href: 'https://github.com/muthuishere/toolnexus-web',
 				},
 			],
 			sidebar: [
@@ -37,7 +37,7 @@ export default defineConfig({
 					label: 'Start here',
 					items: [
 						{ label: 'Quickstart', slug: 'quickstart' },
-						{ label: 'Live demo', link: '/browser-llm-nexus/demo/', attrs: { target: '_blank' } },
+						{ label: 'Live demo', link: '/toolnexus-web/demo/', attrs: { target: '_blank' } },
 					],
 				},
 				{
@@ -58,7 +58,7 @@ export default defineConfig({
 				},
 				{
 					label: 'Reference',
-					items: [{ label: 'Together with toolnexus', slug: 'toolnexus' }],
+					items: [{ label: 'The browser edition of toolnexus', slug: 'toolnexus' }],
 				},
 			],
 		}),

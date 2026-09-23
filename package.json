@@ -1,5 +1,5 @@
 {
-  "name": "browser-llm-nexus",
+  "name": "toolnexus-web",
   "version": "0.8.0",
   "description": "Run LLMs in the browser — GPU or CPU, same API. Tool calling, embeddings, RAG, offline knowledge bundles, and metrics. Hooks-style TypeScript over Transformers.js (injectable).",
   "type": "module",
@@ -77,7 +77,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/muthuishere/browser-llm-nexus.git"
+    "url": "git+https://github.com/muthuishere/toolnexus-web.git"
   },
   "devDependencies": {
     "@huggingface/transformers": "^3.8.1",
@@ -97,8 +97,8 @@
       "optional": true
     }
   },
-  "homepage": "https://github.com/muthuishere/browser-llm-nexus",
+  "homepage": "https://github.com/muthuishere/toolnexus-web",
   "bugs": {
-    "url": "https://github.com/muthuishere/browser-llm-nexus/issues"
+    "url": "https://github.com/muthuishere/toolnexus-web/issues"
   }
 }

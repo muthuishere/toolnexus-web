@@ -271,7 +271,7 @@ the edge than one that volunteers a call.
 
 Your registered tools and conversation history are saved and restored, so this
 is safe to run immediately after `load()`. The `token` / `toolCall` / `raw`
-hooks do fire during the check — the [demo](/browser-llm-nexus/demo/) suppresses
+hooks do fire during the check — the [demo](/toolnexus-web/demo/) suppresses
 its diagnostics panel while it runs.
 
 ### Check a model from the command line
@@ -312,7 +312,7 @@ Argument objects that arrive as a *string* of JSON are decoded too — a very co
 failure mode with quantized models. You can use the parser on its own:
 
 ```ts
-import { parseToolCalls, stripThinking } from 'browser-llm-nexus/toolcalls';
+import { parseToolCalls, stripThinking } from 'toolnexus-web/toolcalls';
 ```
 
 ## Reasoning models
@@ -374,5 +374,5 @@ never a string that arrived from another user or a server you don't control.
 
 ## Related
 
-- [Together with toolnexus](/browser-llm-nexus/toolnexus/) — the same schema, server-side, in six languages
-- [Knowledge & offline bundles](/browser-llm-nexus/knowledge/) — grounding in documents instead of functions
+- [The browser edition of toolnexus](/toolnexus-web/toolnexus/) — the same schema as toolnexus, which runs server-side in seven languages
+- [Knowledge & offline bundles](/toolnexus-web/knowledge/) — grounding in documents instead of functions

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>browser-llm-nexus — tool calling in the tab</title>
+<title>toolnexus-web — tool calling in the tab</title>
 <style>
   :root {
     --bg: #121212; --panel: #1c1e22; --line: #2a2c31; --fg: #f2f3f5;
@@ -89,7 +89,7 @@
 <body>
 
 <main>
-  <h1>browser-llm-nexus</h1>
+  <h1>toolnexus-web</h1>
   <p class="sub">
     An LLM running in this tab, with tool calling. <strong>Any ONNX model works</strong> — from the Hub,
     from a host you control, from a zip URL, or from a file on disk. Same four lines either way,
@@ -120,7 +120,7 @@
       </datalist>
       <p class="hint">
         The list holds only models we
-        <a href="https://muthuishere.github.io/browser-llm-nexus/verified-models/">measured calling tools</a>
+        <a href="https://muthuishere.github.io/toolnexus-web/verified-models/">measured calling tools</a>
         — press Load and it works. Any repo serving the standard Transformers.js ONNX layout loads
         too: type its id and the self-check below tells you whether it can call tools on your machine.
       </p>
@@ -240,7 +240,7 @@
         The library's other half. A small embedding model (~23&nbsp;MB) indexes what you paste, and
         the chat model above answers <em>from what was retrieved</em>. Retrieval is markedly more
         reliable than tool calling at these sizes — measured
-        <a href="https://muthuishere.github.io/browser-llm-nexus/verified-models/">10/10</a>
+        <a href="https://muthuishere.github.io/toolnexus-web/verified-models/">10/10</a>
         against deliberately near-miss documents.
       </p>
       <label for="docs">Documents — separate with a blank line</label>
@@ -305,7 +305,7 @@
 {
   "imports": {
     "@huggingface/transformers": "https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.8.1",
-    "browser-llm-nexus": "https://cdn.jsdelivr.net/npm/browser-llm-nexus@0.8.0/dist/index.js",
+    "toolnexus-web": "https://cdn.jsdelivr.net/npm/toolnexus-web@0.8.0/dist/index.js",
     "fflate": "https://cdn.jsdelivr.net/npm/fflate@0.8.2/+esm"
   }
 }
@@ -317,7 +317,7 @@ import * as transformers from '@huggingface/transformers';
 // the code below is exactly what you would write in your own app.
 // Testing local library changes? Point the import map entry above at
 // '../dist/index.js' and serve the repo root.
-import { NexusChat, NexusEmbedder, NexusKnowledge, describeSource } from 'browser-llm-nexus';
+import { NexusChat, NexusEmbedder, NexusKnowledge, describeSource } from 'toolnexus-web';
 
 const $ = (id) => document.getElementById(id);
 const log = (m) => { $('log').textContent += m + '\n'; $('log').scrollTop = 1e6; };
@@ -660,9 +660,9 @@ function buildSnippet() {
     file: 'a file the user picked — the air-gap path',
   };
 
-  return `npm install browser-llm-nexus @huggingface/transformers
+  return `npm install toolnexus-web @huggingface/transformers
 
-import { NexusChat } from 'browser-llm-nexus';
+import { NexusChat } from 'toolnexus-web';
 
 // ${notes[kind]}
 // loadForTools verifies the model can actually call one, and moves to the

@@ -1,12 +1,12 @@
 ---
 title: Quickstart
-description: Install browser-llm-nexus, load a model in the browser, and get a tool-grounded answer — in about twenty lines.
+description: Install toolnexus-web, load a model in the browser, and get a tool-grounded answer — in about twenty lines.
 ---
 
 ## Install
 
 ```bash
-npm install browser-llm-nexus
+npm install toolnexus-web
 npm install @huggingface/transformers   # the engine — an injectable peer dependency
 ```
 
@@ -20,7 +20,7 @@ build — which you usually do.
 The source is always explicit. There is no default host and no `/models/` convention:
 
 ```ts
-import { NexusChat } from 'browser-llm-nexus';
+import { NexusChat } from 'toolnexus-web';
 
 const chat = await NexusChat.load({ hub: 'onnx-community/Qwen3-0.6B-ONNX' });
 
@@ -39,7 +39,7 @@ const chat = await NexusChat.loadForTools({ hub: 'onnx-community/Qwen3-0.6B-ONNX
 ```
 
 Same object, same API — it just won't hand you one that can't do the job. See
-[Tool calling](/browser-llm-nexus/tool-calling/#just-give-me-a-model-that-calls-tools).
+[Tool calling](/toolnexus-web/tool-calling/#just-give-me-a-model-that-calls-tools).
 :::
 
 Loading weights takes a while the first time. Show progress:
@@ -80,7 +80,7 @@ const answer = await chat.chat('What is the weather in Chennai?');
 
 The loop is automatic: the model emits a call, the library parses it, runs your handler,
 feeds the result back, and asks again — up to `chat.maxRounds` (default `4`) — until you
-get a grounded answer. See [Tool calling](/browser-llm-nexus/tool-calling/).
+get a grounded answer. See [Tool calling](/toolnexus-web/tool-calling/).
 
 ## Check what it cost
 
@@ -91,6 +91,6 @@ console.log(chat.metrics.summary());
 
 ## Next
 
-- [GPU or CPU — same API](/browser-llm-nexus/gpu-or-cpu/) — how the backend is chosen, and how to force one
-- [Where models come from](/browser-llm-nexus/model-sources/) — hub, your own host, or a portable archive
-- [Knowledge & offline bundles](/browser-llm-nexus/knowledge/) — documents in, grounded answers out, shipped in a zip
+- [GPU or CPU — same API](/toolnexus-web/gpu-or-cpu/) — how the backend is chosen, and how to force one
+- [Where models come from](/toolnexus-web/model-sources/) — hub, your own host, or a portable archive
+- [Knowledge & offline bundles](/toolnexus-web/knowledge/) — documents in, grounded answers out, shipped in a zip

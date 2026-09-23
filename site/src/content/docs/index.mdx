@@ -1,23 +1,23 @@
 ---
-title: browser-llm-nexus
+title: toolnexus-web
 description: One interface for running LLMs in the browser. Any ONNX model, from the Hub, your own host or a zip — on WebGPU or CPU, with tool calling that is verified rather than assumed.
 template: splash
 hero:
   tagline: One interface for running models in the browser. Any ONNX model, from anywhere — Hub, your host, a URL, a file on disk. WebGPU when the browser has it, CPU when it doesn't. Your code is the same four lines every time.
   actions:
     - text: Quickstart
-      link: /browser-llm-nexus/quickstart/
+      link: /toolnexus-web/quickstart/
       icon: right-arrow
     - text: Try it live
-      link: /browser-llm-nexus/demo/
+      link: /toolnexus-web/demo/
       icon: rocket
       variant: minimal
     - text: Tool calling
-      link: /browser-llm-nexus/tool-calling/
+      link: /toolnexus-web/tool-calling/
       icon: right-arrow
       variant: minimal
     - text: GitHub
-      link: https://github.com/muthuishere/browser-llm-nexus
+      link: https://github.com/muthuishere/toolnexus-web
       icon: external
       variant: minimal
 ---
@@ -35,11 +35,11 @@ This library's job is to absorb all four, so the code you write does not change 
 them does.
 
 ```bash
-npm install browser-llm-nexus
+npm install toolnexus-web
 ```
 
 ```ts
-import { NexusChat } from 'browser-llm-nexus';
+import { NexusChat } from 'toolnexus-web';
 
 const chat = await NexusChat.loadForTools({ hub: 'onnx-community/Qwen3-0.6B-ONNX' });
 
@@ -56,24 +56,24 @@ console.log(await chat.chat('What is the weather in Chennai?'));
 		The Hub, a folder you serve, a zip URL, or a file the user picked off a USB stick.
 		Four ways to say where a model is; one way to load it. Nothing is guessed — there is
 		no default host and no assumed path.
-		[Model sources](/browser-llm-nexus/model-sources/)
+		[Model sources](/toolnexus-web/model-sources/)
 	</Card>
 	<Card title="Any backend" icon="laptop">
 		WebGPU when the browser exposes a usable adapter, WASM/CPU when it doesn't, with no
 		code change. GPU is an accelerator here, never a requirement — which matters on the
 		locked-down laptop where *"this must not leave the page"* is the whole point.
-		[GPU or CPU](/browser-llm-nexus/gpu-or-cpu/)
+		[GPU or CPU](/toolnexus-web/gpu-or-cpu/)
 	</Card>
 	<Card title="Any model family" icon="puzzle">
 		Qwen/Hermes `<tool_call>`, Mistral `[TOOL_CALLS]`, Llama bare JSON, fenced JSON and
 		nested OpenAI-style objects all parse to the same `ToolCall`. Register a plain
 		function; the dialect is not your problem.
-		[Tool calling](/browser-llm-nexus/tool-calling/)
+		[Tool calling](/toolnexus-web/tool-calling/)
 	</Card>
 	<Card title="Ships offline in a zip" icon="seti:zip">
 		Export a model, a vector index, or a whole knowledge base to a portable archive.
 		Import it on an air-gapped machine — nothing re-embedded, nothing downloaded.
-		[Knowledge & bundles](/browser-llm-nexus/knowledge/)
+		[Knowledge & bundles](/toolnexus-web/knowledge/)
 	</Card>
 </CardGrid>
 
@@ -109,7 +109,7 @@ you a chat object that silently cannot do the job.
 
 We publish what we measured rather than a curated list of favourites — including the
 combinations that **fail**, because a table with no failures in it is a marketing page.
-[Which models actually work](/browser-llm-nexus/verified-models/)
+[Which models actually work](/toolnexus-web/verified-models/)
 
 ## Getting a model into the layout
 
@@ -117,11 +117,11 @@ Most models on the Hub ship PyTorch weights, not ONNX.
 **[hf2browser](https://github.com/muthuishere/hf2browser)** is an open-source converter that
 produces exactly the layout above and hands you the result as a single zip this library
 loads directly. It's a sister project, not a dependency.
-[Converting and serving](/browser-llm-nexus/model-sources/#getting-a-model-into-that-layout-hf2browser)
+[Converting and serving](/toolnexus-web/model-sources/#getting-a-model-into-that-layout-hf2browser)
 
 ## The sister library
 
 **[toolnexus](https://github.com/muthuishere/toolnexus) gives any LLM tools.
-browser-llm-nexus gives you the LLM.** One runs on your server in six languages, one runs
+toolnexus-web gives you the LLM.** One runs on your server in six languages, one runs
 in the tab with no server at all — and both emit the same OpenAI function schema.
-[See how they fit together](/browser-llm-nexus/toolnexus/).
+[See how they fit together](/toolnexus-web/toolnexus/).

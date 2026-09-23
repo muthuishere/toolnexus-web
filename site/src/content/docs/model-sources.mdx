@@ -49,12 +49,12 @@ await NexusChat.load({ archive: bytes });                       // Blob / Uint8A
 The archive is restored into the browser cache first, then the model loads out of that
 cache — so **loading needs no further network at all**. This is the air-gap path, and the
 one that makes a knowledge base shippable on a USB stick. See
-[offline bundles](/browser-llm-nexus/knowledge/).
+[offline bundles](/toolnexus-web/knowledge/).
 
 Make one with `exportModel`:
 
 ```ts
-import { exportModel } from 'browser-llm-nexus/model';
+import { exportModel } from 'toolnexus-web/model';
 
 const zip = await exportModel('Qwen/Qwen3-0.6B', {
   modelsUrl: 'https://cdn.example.com/m/',
@@ -84,8 +84,8 @@ hf2browser serve                                    # http://localhost:8917
 `--modes` defaults to **`q4` alone**, and the pipeline actively *deletes* variants you did
 not ask for. That matters because the best dtype is model-specific and not predictable:
 Qwen2.5-0.5B is usable at q4 and useless at q8; Qwen3-0.6B is the exact reverse. Ship one
-variant and [`detectDtype`](/browser-llm-nexus/gpu-or-cpu/) has nothing to choose between.
-Pass `--modes q4,q8,fp16` and let [`selfCheck()`](/browser-llm-nexus/tool-calling/) decide
+variant and [`detectDtype`](/toolnexus-web/gpu-or-cpu/) has nothing to choose between.
+Pass `--modes q4,q8,fp16` and let [`selfCheck()`](/toolnexus-web/tool-calling/) decide
 on the user's actual machine.
 
 Cost of the extra modes is size: fp16 is roughly 4× q4, so a 0.5B model goes from ~300 MB
@@ -105,7 +105,7 @@ await NexusChat.load({ archive: 'http://localhost:8917/api/model.zip?model=Qwen/
 ```
 
 That `/api/model.zip` endpoint emits **exactly** the `manifest.json` + `files/N.bin` layout
-[`importModel()`](/browser-llm-nexus/knowledge/) reads — same `kind` / `modelId` /
+[`importModel()`](/toolnexus-web/knowledge/) reads — same `kind` / `modelId` /
 `createdAt` / `dtypes` / `files[{file,url,path}]` shape this library's own `exportModel()`
 writes. Drop the download straight into a `<input type="file">` and `{ archive: file }`
 loads it, with no conversion step in between:
@@ -132,5 +132,5 @@ const chat = await NexusChat.load(source, { transformers });
 
 ## Related
 
-- [GPU or CPU](/browser-llm-nexus/gpu-or-cpu/) — which dtype gets picked out of what your source serves
-- [Knowledge & offline bundles](/browser-llm-nexus/knowledge/) — archives, composed
+- [GPU or CPU](/toolnexus-web/gpu-or-cpu/) — which dtype gets picked out of what your source serves
+- [Knowledge & offline bundles](/toolnexus-web/knowledge/) — archives, composed

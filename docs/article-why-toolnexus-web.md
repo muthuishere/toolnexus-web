@@ -1,6 +1,6 @@
 # Your LLM Doesn't Always Need a Server. Sometimes It Doesn't Even Need a GPU.
 
-*Why I built browser-llm-nexus — and, more usefully, when you should and shouldn't reach for it.*
+*Why I built toolnexus-web — and, more usefully, when you should and shouldn't reach for it.*
 
 ---
 
@@ -23,7 +23,7 @@ The demo excludes precisely the user who needed it most.
 The received wisdom is that running a model yourself means one of two things: you rent a
 server and send your data to it, or you require a machine with a decent GPU.
 
-**browser-llm-nexus takes a third position: GPU is an accelerator, never a requirement.**
+**toolnexus-web takes a third position: GPU is an accelerator, never a requirement.**
 
 Every loader asks the browser for a GPU adapter. If there's one, it uses WebGPU. If there
 isn't — or if requesting it throws, which happens more than you'd think behind enterprise
@@ -179,11 +179,11 @@ your own claims.
 ## Try it
 
 ```bash
-npm install browser-llm-nexus
+npm install toolnexus-web
 ```
 
-Docs: **https://muthuishere.github.io/browser-llm-nexus/**
-Source: **https://github.com/muthuishere/browser-llm-nexus**
+Docs: **https://muthuishere.github.io/toolnexus-web/**
+Source: **https://github.com/muthuishere/toolnexus-web**
 
 If you're doing the server-side version of this problem — giving any LLM tools, MCP
 servers, and agent skills across six languages — that's

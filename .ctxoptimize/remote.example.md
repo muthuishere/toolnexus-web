@@ -15,7 +15,7 @@ teammates clone and a bare `ctx-optimize remote pull` just works.
 Your command receives the store context in env:
 
     CTX_STORE_DIR     local store tree (push: source · pull: destination, pre-created)
-    CTX_STORE_KEY     the store's key under ~/ctxoptimize/  (here: browser-llm-nexus)
+    CTX_STORE_KEY     the store's key under ~/ctxoptimize/  (here: toolnexus-web)
     CTX_SCOPE_PREFIX  module store-key segment when run inside a module, else empty
     CTX_DIRECTION     "push" or "pull" — one script can serve both
 

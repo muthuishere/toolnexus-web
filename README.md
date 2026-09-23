@@ -1,10 +1,10 @@
-# browser-llm-nexus
+# toolnexus-web
 
-[![npm](https://img.shields.io/npm/v/browser-llm-nexus?color=cb3837&logo=npm)](https://www.npmjs.com/package/browser-llm-nexus)
-[![install size](https://img.shields.io/badge/deps-0-brightgreen)](https://www.npmjs.com/package/browser-llm-nexus)
-[![types](https://img.shields.io/badge/types-included-blue?logo=typescript&logoColor=white)](https://www.npmjs.com/package/browser-llm-nexus)
-[![provenance](https://img.shields.io/badge/npm-signed%20provenance-6f42c1?logo=github)](https://www.npmjs.com/package/browser-llm-nexus#provenance)
-[![license](https://img.shields.io/npm/l/browser-llm-nexus)](./LICENSE)
+[![npm](https://img.shields.io/npm/v/toolnexus-web?color=cb3837&logo=npm)](https://www.npmjs.com/package/toolnexus-web)
+[![install size](https://img.shields.io/badge/deps-0-brightgreen)](https://www.npmjs.com/package/toolnexus-web)
+[![types](https://img.shields.io/badge/types-included-blue?logo=typescript&logoColor=white)](https://www.npmjs.com/package/toolnexus-web)
+[![provenance](https://img.shields.io/badge/npm-signed%20provenance-6f42c1?logo=github)](https://www.npmjs.com/package/toolnexus-web#provenance)
+[![license](https://img.shields.io/npm/l/toolnexus-web)](./LICENSE)
 
 **One interface for running models in the browser.** Any ONNX model, from anywhere —
 the Hub, your own host, a zip URL, a file on disk — on WebGPU or CPU, with tool calling,
@@ -17,10 +17,10 @@ call syntax the model family speaks. This library absorbs all four so your code 
 change when any of them does.
 
 ```bash
-npm install browser-llm-nexus
+npm install toolnexus-web
 ```
 
-📦 **[browser-llm-nexus on npm](https://www.npmjs.com/package/browser-llm-nexus)** — zero runtime
+📦 **[toolnexus-web on npm](https://www.npmjs.com/package/toolnexus-web)** — zero runtime
 dependencies, TypeScript types included, published from CI with signed provenance.
 
 Standalone by design: no server of ours, no bundled weights, no assumed layout.
@@ -28,7 +28,7 @@ Transformers.js is an *injectable* peer dependency, and **where a model comes fr
 always something you state** — never guessed.
 
 ```ts
-import { NexusChat } from 'browser-llm-nexus';
+import { NexusChat } from 'toolnexus-web';
 
 const chat = await NexusChat.load({ hub: 'onnx-community/Qwen3-0.6B-ONNX' });  // Hugging Face
 const chat = await NexusChat.load({ base: '/models/', id: 'Qwen/Qwen3-0.6B' }); // your server
@@ -139,7 +139,7 @@ for JSON and builds the call from closed questions instead. That escalation is a
 returning an unguessable token and keeps the first quantization that both calls it and
 answers from the result, or throws naming every one it tried. Which quantization works is
 model-specific and doesn't transfer between models, so it is measured rather than assumed.
-[What we measured](https://muthuishere.github.io/browser-llm-nexus/verified-models/),
+[What we measured](https://muthuishere.github.io/toolnexus-web/verified-models/),
 failures included.
 
 **Embeddings and RAG in the same place — measured, not asserted.** One engine stack for
@@ -153,7 +153,7 @@ severity one/two) picks the right one, so lexical overlap alone can't answer it.
 embedding models retrieve the right document first on **10/10** questions; end to end,
 all-MiniLM-L6-v2 plus Qwen3-0.6B gave **10/10 grounded answers**. The harness is checked
 against itself: random vectors drop recall@1 to 1/10, so the score isn't an artefact of an
-easy corpus. [Full results](https://muthuishere.github.io/browser-llm-nexus/verified-models/).
+easy corpus. [Full results](https://muthuishere.github.io/toolnexus-web/verified-models/).
 
 Worth knowing: **retrieval is far more reliable than tool calling at these model sizes.**
 Restating a retrieved paragraph is much easier than choosing a function and emitting valid
@@ -182,7 +182,7 @@ every importer accepts a **URL, a `File` from an `<input>`, a `Blob`, or raw byt
 "load from a server" and "load from a file the user picked" are the same call.
 
 ```ts
-import { exportModel, importModel, exportIndex, importIndex, hubRoot } from 'browser-llm-nexus';
+import { exportModel, importModel, exportIndex, importIndex, hubRoot } from 'toolnexus-web';
 
 // 1. a chat model — an embedding model packs identically
 const zip = await exportModel('Qwen/Qwen3-0.6B', { modelsUrl: '/models/', dtypes: ['q4'] });
@@ -213,7 +213,7 @@ Documents in, grounded answers out — chunking, embedding, indexing, retrieval 
 context assembly handled for you.
 
 ```ts
-import { NexusKnowledge } from 'browser-llm-nexus';
+import { NexusKnowledge } from 'toolnexus-web';
 
 const kb = await NexusKnowledge.create({
   chat: { hub: 'onnx-community/Qwen3-0.6B-ONNX' },
@@ -252,7 +252,7 @@ manifest without loading any models.
 ## Embeddings + RAG on their own
 
 ```ts
-import { NexusEmbedder, MemoryIndex, chunkText } from 'browser-llm-nexus';
+import { NexusEmbedder, MemoryIndex, chunkText } from 'toolnexus-web';
 
 const embedder = await NexusEmbedder.load({ hub: 'Xenova/bge-small-en-v1.5' });
 const index = new MemoryIndex();

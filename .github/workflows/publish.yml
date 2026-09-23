@@ -27,4 +27,4 @@ jobs:
       - name: Confirm on registry
         run: |
           sleep 10
-          npm view browser-llm-nexus version
+          npm view toolnexus-web version

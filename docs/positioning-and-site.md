@@ -1,4 +1,4 @@
-# Positioning & docs site — browser-llm-nexus
+# Positioning & docs site — toolnexus-web
 
 *Decided in the huddle of 2026-08-01. This is the spec the `site/` scaffold implements.
 Everything below is grounded in shipped code — no aspirational claims.*
@@ -11,7 +11,7 @@ Everything below is grounded in shipped code — no aspirational claims.*
 
 And the sister line, which is the reason this library has the name it has:
 
-> **toolnexus gives any LLM tools. browser-llm-nexus gives you the LLM.**
+> **toolnexus gives any LLM tools. toolnexus-web gives you the LLM.**
 > Same tool schema — one runs on your server in six languages, one runs in the tab with
 > no server at all.
 
@@ -49,7 +49,7 @@ Point 3 is the genuinely uncontested one and was buried near the bottom of the R
 
 ## 4. Search intent — the distribution bet
 
-Nobody types "browser-llm-nexus". The queries that exist and have no good answer today:
+Nobody types "toolnexus-web". The queries that exist and have no good answer today:
 
 | Query | Landing page |
 |---|---|
@@ -64,7 +64,7 @@ seen the homepage and never will.
 
 ## 5. Site decisions
 
-- **Free path only.** GitHub Pages at `https://muthuishere.github.io/browser-llm-nexus`.
+- **Free path only.** GitHub Pages at `https://muthuishere.github.io/toolnexus-web`.
   No custom domain, no Cloudflare, no shared `nexus.*` home. Revisit only if there's budget.
 - **Astro + Starlight**, same as toolnexus: `site/` subfolder, `starlight-llms-txt`,
   the shared `deemwar.css` theme, `pages.yml` gated on `paths: site/**`.
@@ -97,7 +97,7 @@ Checked against source — **it is real at the layer that matters, and not at th
 layer.**
 
 - toolnexus: `defineTool({ name, description, inputSchema, run })` — `js/src/native.ts:19`
-- browser-llm-nexus: `chat.tool(name, description, propsShorthand, handler, { required })`
+- toolnexus-web: `chat.tool(name, description, propsShorthand, handler, { required })`
   — `src/chat.ts:96`
 
 Different call shapes, but `src/chat.ts:100-112` normalises the shorthand into exactly the

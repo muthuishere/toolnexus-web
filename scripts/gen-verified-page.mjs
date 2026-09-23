@@ -90,7 +90,7 @@ ${d.verdicts.untested.replace(/^Not measured by us\. /, '')}
 The important thing this table shows is that **the best quantization is model-specific and
 does not transfer**: Qwen2.5-0.5B is reliable at q4 and poor at q8, while Qwen3-0.6B is fine
 at both and broken at fp16. There is no ordering that wins everywhere, which is exactly why
-[\`loadForTools()\`](/browser-llm-nexus/tool-calling/#just-give-me-a-model-that-calls-tools)
+[\`loadForTools()\`](/toolnexus-web/tool-calling/#just-give-me-a-model-that-calls-tools)
 measures instead of assuming.
 
 ## Check your own model

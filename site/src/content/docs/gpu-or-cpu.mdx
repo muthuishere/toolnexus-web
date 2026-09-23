@@ -56,7 +56,7 @@ A faster answer that silently corrupts a tool result is worse than a slower
 correct one, so correctness picks the default. But note this is the best single
 default, not a universal truth — Qwen3-0.6B is the reverse, reliable at `q8`
 and unusable at `fp16`. See [which models actually call
-tools](/browser-llm-nexus/tool-calling/) for the measured matrix, and state the
+tools](/toolnexus-web/tool-calling/) for the measured matrix, and state the
 dtype yourself once you have verified your own model:
 
 ```ts
@@ -123,7 +123,7 @@ end. They aren't. A service worker sits between the page and the network and can
 and COEP to responses on the way back, which is enough for the browser. The page reloads
 once, then reports `crossOriginIsolated === true`.
 
-The demo does exactly this ([`examples/coi.js`](https://github.com/muthuishere/browser-llm-nexus/blob/main/examples/coi.js)),
+The demo does exactly this ([`examples/coi.js`](https://github.com/muthuishere/toolnexus-web/blob/main/examples/coi.js)),
 and it fully recovers the difference: **4.7 tok/s on a host sending no headers at all**,
 matching a properly-configured server, against 1.5 without it.
 
@@ -149,5 +149,5 @@ much smaller.
 
 ## Related
 
-- [Where models come from](/browser-llm-nexus/model-sources/) — what "your source actually serves" means
-- [Quickstart](/browser-llm-nexus/quickstart/)
+- [Where models come from](/toolnexus-web/model-sources/) — what "your source actually serves" means
+- [Quickstart](/toolnexus-web/quickstart/)

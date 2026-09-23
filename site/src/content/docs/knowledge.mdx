@@ -8,7 +8,7 @@ object: you add documents, you ask questions, you get answers grounded in those 
 Chunking, embedding, indexing, retrieval and context assembly are handled.
 
 ```ts
-import { NexusKnowledge } from 'browser-llm-nexus';
+import { NexusKnowledge } from 'toolnexus-web';
 
 const kb = await NexusKnowledge.create({
   chat: { hub: 'onnx-community/Qwen3-0.6B-ONNX' },
@@ -21,7 +21,7 @@ kb.on('token', t => render(t));
 const answer = await kb.ask('What is the refund policy?');
 ```
 
-`chat` and `embedder` each accept either a [model source](/browser-llm-nexus/model-sources/)
+`chat` and `embedder` each accept either a [model source](/toolnexus-web/model-sources/)
 or an already-loaded `NexusChat` / `NexusEmbedder`, so two knowledge bases can share one
 loaded model instead of paying for it twice. `chunkSize`, `chunkOverlap` and `topK` are
 options on `create`.
@@ -102,5 +102,5 @@ actually hand someone.
 
 ## Related
 
-- [Embeddings & RAG](/browser-llm-nexus/embeddings-rag/) — the pieces underneath, used directly
-- [Where models come from](/browser-llm-nexus/model-sources/) — `{ archive }` as a load source
+- [Embeddings & RAG](/toolnexus-web/embeddings-rag/) — the pieces underneath, used directly
+- [Where models come from](/toolnexus-web/model-sources/) — `{ archive }` as a load source

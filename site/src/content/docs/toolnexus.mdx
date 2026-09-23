@@ -1,19 +1,33 @@
 ---
-title: Together with toolnexus
-description: toolnexus gives any LLM tools. browser-llm-nexus gives you the LLM. Two independent libraries that emit the same tool schema.
+title: The browser edition of toolnexus
+description: toolnexus-web is toolnexus for the browser tab — same tool schema, same ideas, plus a local model. Its own codebase, no dependency on the server library.
 ---
 
-**[toolnexus](https://github.com/muthuishere/toolnexus) gives any LLM tools.
-browser-llm-nexus gives you the LLM.**
+**[toolnexus](https://github.com/muthuishere/toolnexus) is an agent SDK for your server.
+toolnexus-web is the same idea built for the browser tab — and it brings the model with it.**
 
-Siblings, not layers — neither depends on the other. What they share is the tool schema.
+It is its own library, not a wrapper: nothing here imports toolnexus. It follows the same
+tool schema and borrows toolnexus's design wherever that design can run inside a page.
 
-|  | toolnexus | browser-llm-nexus |
+|  | toolnexus | toolnexus-web |
 |---|---|---|
-| Runs | on your server | in the browser tab |
-| Brings | tools (MCP, skills, HTTP, A2A) | the model (WebGPU / WASM) |
-| Needs a model endpoint | yes | no — the weights are local |
+| Runs | on your server, in 7 languages | in the browser tab |
+| Model | any provider endpoint | local (WebGPU / WASM) — the weights are in the tab |
+| Tools | MCP, skills, native, HTTP, A2A | native tools today; more of the toolnexus surface as it fits the browser |
 | Data leaves the machine | to your model provider | never |
+
+## What can and cannot come to the browser
+
+A browser page has no processes and no filesystem, so the line is drawn by the platform,
+not by preference:
+
+- **Can come over:** the tool-calling loop, hooks, streaming, retries, conversation memory,
+  native tools, MCP over HTTP, remote A2A agents, in-process sub-agents, and skills loaded
+  from a URL or passed in memory.
+- **Cannot:** stdio MCP servers (they spawn processes) and reading `mcp.json` or a
+  `skills/` folder from disk.
+- **Only here:** in-tab inference on GPU or CPU, embeddings, RAG, and offline knowledge
+  bundles.
 
 ## The same tool, both sides
 
@@ -29,13 +43,13 @@ defineTool({
   run: ({ city }) => fetchWeather(city),
 })
 
-// browser-llm-nexus — in the tab
+// toolnexus-web — in the tab
 chat.tool('get_weather', 'Get current weather for a city',
   { city: 'string' },
   ({ city }) => fetchWeather(city));
 ```
 
-Reach for browser-llm-nexus when the data must not leave the machine; reach for toolnexus
+Reach for toolnexus-web when the data must not leave the machine; reach for toolnexus
 when a model endpoint is fine and the hard part is the tools.
 
 [toolnexus docs →](https://muthuishere.github.io/toolnexus/)
