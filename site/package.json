@@ -9,7 +9,7 @@
     "build": "astro build",
     "preview": "astro preview",
     "astro": "astro",
-    "prebuild": "node -e \"const fs=require('fs');fs.mkdirSync('public/demo',{recursive:true});for(const f of ['index.html','coi.js','jev-snake.html'])fs.copyFileSync('../examples/'+f,'public/demo/'+f);console.log('copied examples/{index.html,coi.js,jev-snake.html} -> site/public/demo/')\"",
+    "prebuild": "node scripts/copy-demo.mjs",
     "predev": "node -e \"const fs=require('fs');fs.mkdirSync('public/demo',{recursive:true});for(const f of ['index.html','coi.js','jev-snake.html'])fs.copyFileSync('../examples/'+f,'public/demo/'+f);console.log('copied examples/{index.html,coi.js,jev-snake.html} -> site/public/demo/')\""
   },
   "dependencies": {
