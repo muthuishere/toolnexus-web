@@ -1,7 +1,7 @@
 import { Hooks } from './hooks.ts';
 import { Metrics } from './metrics.ts';
 import { parseToolCalls, salvageToolCall, stripCallFragments, stripThinking, type ToolCall } from './toolcalls.ts';
-import { resolveTransformers, detectDtype, availableDtypes, detectDevice, type Device, type RuntimeOptions, type TransformersLike } from './runtime.ts';
+import { resolveTransformers, detectDtype, availableDtypes, detectDevice, readLogit, type Device, type RuntimeOptions, type TransformersLike } from './runtime.ts';
 import { dtypeProbe, resolveSource, type ModelSource } from './source.ts';
 
 export type ToolHandler = (args: Record<string, unknown>) => unknown | Promise<unknown>;
@@ -68,6 +68,25 @@ export interface ChatOptions {
    *  selects correctly stepwise — and on models that already work it is no
    *  slower, because 1+N short generations beat one 256-token one. */
   strategy?: 'auto' | 'inline' | 'stepwise';
+}
+
+export interface DecisionOption {
+  choice: string;
+  /** The letter the model was scored on: A, B, C… */
+  label: string;
+  probability: number;
+  logprob: number;
+  logit: number;
+}
+
+export interface Decision {
+  /** The most probable option — always one of the choices passed in. */
+  choice: string;
+  probability: number;
+  /** Every option, in the order it was given. */
+  options: DecisionOption[];
+  ms: number;
+  inputTokens: number;
 }
 
 /** Verdict from {@link NexusChat.selfCheck}. */
@@ -353,7 +372,7 @@ export class NexusChat extends Hooks<ChatEvents> {
     // Once results are in, swap the call-phase instruction for the answer-phase
     // one. Only our own injected system message is touched — a system message
     // the caller wrote themselves is left exactly as they wrote it.
-    const answering = this.messages.some((m) => m.role === 'tool');
+    const answering = this.hasResultsThisTurn();
     const messages = answering
       ? this.messages.map((m) =>
           m.role === 'system' && m.content === this.systemPrompt ? { ...m, content: this.answerPrompt } : m,
@@ -531,7 +550,7 @@ export class NexusChat extends Hooks<ChatEvents> {
     this.metrics.count('chats');
 
     const choice = opts.toolChoice ?? 'auto';
-    const answered = () => this.messages.some((m) => m.role === 'tool');
+    const answered = () => this.hasResultsThisTurn();
 
     for (let round = 0; round < this.maxRounds; round++) {
       this.emit('round', round);
@@ -690,6 +709,74 @@ export class NexusChat extends Hooks<ChatEvents> {
         : `${this.modelId} (${this.device}/${this.dtype}) does not call tools. Try another quantization, or a larger model — below ~0.5B this usually cannot be fixed.`;
 
     return { ok, called, grounded, needed_forcing: forced, model: this.modelId, device: this.device, dtype: this.dtype, answer, detail };
+  }
+
+  /** Instruction for {@link decide}. Short on purpose: the options are in the
+   *  user message, and the answer is read from logits, never from prose. */
+  decidePrompt = 'Choose one option.';
+
+  /** Jev-style "System One" decision: one forward pass, and a probability for
+   *  every option you allowed. Nothing is generated, so nothing is parsed, and
+   *  the answer can only ever be one of `choices`.
+   *
+   *      const d = await chat.decide('Email: …', ['Legitimate', 'Spam', 'Phishing']);
+   *      d.choice;       // 'Phishing'
+   *      d.options;      // [{ choice, label, probability, logprob, logit }, …]
+   *
+   *  Options are labelled A, B, C… and scored by the logit of each label's
+   *  token at the position right after the assistant turn opens. The
+   *  conversation history is neither read nor changed. */
+  async decide(prompt: string, choices: string[], opts: { system?: string } = {}): Promise<Decision> {
+    if (choices.length < 2 || choices.length > 26) {
+      throw new Error(`decide needs 2–26 choices, got ${choices.length}`);
+    }
+    const tok = this.generator.tokenizer;
+    const labels = choices.map((_, i) => String.fromCharCode(65 + i));
+    const ids = labels.map((l) => Number(tok.encode(l, { add_special_tokens: false })[0]));
+    if (new Set(ids).size !== ids.length) {
+      throw new Error(`decide: this tokenizer does not give labels ${labels.join(',')} distinct tokens`);
+    }
+    const text: string = tok.apply_chat_template(
+      [
+        { role: 'system', content: opts.system ?? this.decidePrompt },
+        { role: 'user', content: `${prompt}\n\n${choices.map((c, i) => `${labels[i]}. ${c}`).join('\n')}` },
+      ],
+      { tokenize: false, add_generation_prompt: true, enable_thinking: false },
+    );
+
+    const t0 = Date.now();
+    const inputs = tok(text, { add_special_tokens: false });
+    const { logits } = await this.generator.model(inputs);
+    const [, seq, vocab] = logits.dims as number[];
+    const row = (seq! - 1) * vocab!;
+    const raw = ids.map((id) => readLogit(logits, row + id));
+    const ms = Date.now() - t0;
+    this.metrics.time('decide', ms);
+    this.metrics.count('decisions');
+
+    const max = Math.max(...raw);
+    const lse = max + Math.log(raw.reduce((s, v) => s + Math.exp(v - max), 0));
+    const options = choices.map((choice, i) => ({
+      choice,
+      label: labels[i]!,
+      logit: raw[i]!,
+      logprob: raw[i]! - lse,
+      probability: Math.exp(raw[i]! - lse),
+    }));
+    const best = options.reduce((a, b) => (b.probability > a.probability ? b : a));
+    return { choice: best.choice, probability: best.probability, options, ms, inputTokens: seq! };
+  }
+
+  /** Tool results since the latest user message. Over the whole history, one
+   *  tool call early in a conversation would put every later turn in answer
+   *  phase, so later questions were never steered or forced to call. */
+  private hasResultsThisTurn(): boolean {
+    for (let i = this.messages.length - 1; i >= 0; i--) {
+      const role = this.messages[i]!.role;
+      if (role === 'tool') return true;
+      if (role === 'user') return false;
+    }
+    return false;
   }
 
   reset(): void {

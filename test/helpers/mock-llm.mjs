@@ -18,6 +18,15 @@ export const dialect = {
     `<think>The user wants ${name}. I should call it.</think>\n<tool_call>\n${JSON.stringify({ name, arguments: args })}\n</tool_call>`,
 };
 
+/** float32 → IEEE half bits (normal range only — enough for test logits). */
+function toHalf(x) {
+  const f = new Float32Array([x]), u = new Uint32Array(f.buffer)[0];
+  const sign = (u >>> 16) & 0x8000, exp = ((u >>> 23) & 0xff) - 127 + 15, man = (u >>> 13) & 0x3ff;
+  if (exp <= 0) return sign;
+  if (exp >= 31) return sign | 0x7c00;
+  return sign | (exp << 10) | man;
+}
+
 /** Chat templates, close enough to the real ones to assert against. */
 const templates = {
   qwen(messages, tools) {
@@ -55,16 +64,25 @@ const templates = {
  * for that round — a string, or a function given { messages, tools, round }.
  * The last entry repeats if the loop runs longer.
  */
-export function mockLLM({ family = 'qwen', template = 'qwen', script = [], streamer = true } = {}) {
+export function mockLLM({
+  family = 'qwen', template = 'qwen', script = [], streamer = true,
+  // Forward pass for decide(): next-token logits at the LAST position, keyed by
+  // the single character each token spells. Token id = char code, vocab 128.
+  logits = {}, logitsType = 'float32',
+} = {}) {
   const rendered = [];   // every apply_chat_template call
   const generated = [];  // every generation's options
+  const forwards = [];   // every forward pass's decoded prompt
   let round = 0;
 
-  const tokenizer = {
-    apply_chat_template(messages, opts = {}) {
-      rendered.push({ messages: structuredClone(messages), tools: opts.tools, opts });
-      return (templates[template] ?? templates.qwen)(messages, opts.tools);
-    },
+  const tokenizer = (text) => {
+    const ids = [...String(text)].map((c) => Math.min(c.charCodeAt(0), 127));
+    return { input_ids: { dims: [1, ids.length], ids, text }, attention_mask: { dims: [1, ids.length] } };
+  };
+  tokenizer.encode = (text) => [...String(text)].map((c) => c.charCodeAt(0));
+  tokenizer.apply_chat_template = (messages, opts = {}) => {
+    rendered.push({ messages: structuredClone(messages), tools: opts.tools, opts });
+    return (templates[template] ?? templates.qwen)(messages, opts.tools);
   };
 
   const generator = async (prompt, opts = {}) => {
@@ -81,6 +99,19 @@ export function mockLLM({ family = 'qwen', template = 'qwen', script = [], strea
   };
   generator.tokenizer = tokenizer;
   generator.dispose = async () => { generator.disposed = true; };
+
+  const VOCAB = 128;
+  generator.model = async ({ input_ids }) => {
+    forwards.push(input_ids.text);
+    const seq = input_ids.dims[1];
+    const f32 = new Float32Array(seq * VOCAB).fill(-50);
+    // Earlier positions carry a decoy, so reading any row but the last is caught.
+    for (let p = 0; p < seq - 1; p++) f32[p * VOCAB + 'A'.charCodeAt(0)] = 99;
+    const last = (seq - 1) * VOCAB;
+    for (const [ch, v] of Object.entries(logits)) f32[last + ch.charCodeAt(0)] = v;
+    const data = logitsType === 'float16' ? Uint16Array.from(f32, toHalf) : f32;
+    return { logits: { type: logitsType, dims: [1, seq, VOCAB], data } };
+  };
 
   const transformers = {
     env: {},
@@ -102,6 +133,7 @@ export function mockLLM({ family = 'qwen', template = 'qwen', script = [], strea
     generator,
     rendered,
     generated,
+    forwards,
     get rounds() { return round; },
     /** The system message content as the model saw it in round `i`. */
     systemAt: (i) => rendered[i]?.messages.find((m) => m.role === 'system')?.content,

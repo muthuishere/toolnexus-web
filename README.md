@@ -96,6 +96,33 @@ await chat.evalTools(`
 `);
 ```
 
+## Decisions, Jev-style — nothing generated
+
+A System One decision: a state, a question, the options you allow, and **one forward pass**
+that returns a probability for each option. No text is generated, so there is nothing to parse
+and the answer can only be one of your options. Two engines:
+
+```ts
+// 1. Any loaded chat model — reads the logits of the option letters.
+const d = await chat.decide('Email: Payroll asks for your password…', ['Legitimate', 'Spam', 'Phishing']);
+d.choice;   // one of the three, with d.options[i].probability for each
+
+// 2. A model trained only to decide (open-jev, DeBERTa-v3, 348 MB q4f16).
+//    Jev's request shape: one state, many typed questions, one pass.
+const decider = await NexusDecider.load();
+const { answers } = await decider.systemOne(ticket, {
+  team:   { type: 'choice', instructions: 'Which team handles this?', options: ['billing', 'support'] },
+  urgent: { type: 'noul',   instructions: 'The customer needs help right now.' },   // P(true)
+  level:  { type: 'score',  instructions: 'How angry?', options: ['calm', 'annoyed', 'furious'] },
+});
+```
+
+Which one, measured on the same 60 Snake boards on WebGPU ([play it](https://muthuishere.github.io/toolnexus-web/demo/jev-snake.html)):
+Qwen3-0.6B via `decide()` moved toward the food 45% of the time, against 49% for a random safe
+move; `NexusDecider` 100%, at 36 ms a decision. A small chat model is a weak decider (SemIf measured
+Qwen3-0.6B at 40.7% agreement with Jev). `NexusDecider` needs Transformers.js 4.x and loads it
+itself; its authors measure 0.854 accuracy in-domain and 0.690 on unseen question types.
+
 ## What else is out there, and where this differs
 
 Running an LLM in a browser is not a new idea, and this is **a set of abstractions built on

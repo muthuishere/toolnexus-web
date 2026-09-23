@@ -473,6 +473,33 @@ test('forcing never happens once tool results exist', async () => {
   assert.equal(llm.rounds, 2, 'no extra generation — the answer turn is allowed to be prose');
 });
 
+// "Results exist" is a property of the current turn. Judged over the whole
+// history, the first tool call of a conversation disabled forcing and the
+// call-phase prompt for every question after it — the model then answered the
+// second question from its own guesses.
+test('a later question is still steered and forced after an earlier tool turn', async () => {
+  const { chat, llm } = await chatWith({
+    script: [
+      dialect.qwen('get_weather', { city: 'Chennai' }), 'It is 31C.',
+      'I guess about 1000000.', 'multiply", "arguments": {"a": 4831, "b": 227}}\n</tool_call>', 'It is 1096637.',
+    ],
+  });
+  weather(chat);
+  const spy = {};
+  chat.tool('multiply', 'Multiply two numbers', { a: 'number', b: 'number' }, async ({ a, b }) => {
+    spy.args = [a, b];
+    return { product: a * b };
+  });
+
+  await chat.chat('weather?');
+  const answer = await chat.chat('What is 4831 times 227?');
+
+  assert.deepEqual(spy.args, [4831, 227], 'the second question reached its tool');
+  assert.equal(answer, 'It is 1096637.');
+  assert.equal(llm.systemAt(2), chat.systemPrompt, 'the new turn starts in call phase');
+  assert.equal(chat.metrics.counters.get('tool_calls_forced'), 1);
+});
+
 test('toolChoice:none leaves a declining model alone', async () => {
   const prose = 'I think it is warm.';
   const { chat, llm } = await chatWith({ script: [prose] });

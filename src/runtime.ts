@@ -6,6 +6,9 @@ export interface TransformersLike {
   pipeline: (task: string, model: string, opts?: Record<string, unknown>) => Promise<any>;
   env: any;
   TextStreamer?: new (tokenizer: any, opts: Record<string, unknown>) => unknown;
+  AutoTokenizer?: { from_pretrained(id: string, opts?: Record<string, unknown>): Promise<any> };
+  AutoModel?: { from_pretrained(id: string, opts?: Record<string, unknown>): Promise<any> };
+  Tensor?: new (type: string, data: unknown, dims: number[]) => unknown;
 }
 
 const CDN = 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.8.1';
@@ -123,4 +126,16 @@ export async function availableDtypes(
   }
   if (!found.length) throw new Error(`no dtype variant found for ${modelId} under ${at('onnx/')}`);
   return found;
+}
+
+/** One logit out of a transformers.js tensor. fp16 logits arrive as raw half
+ *  bits in a Uint16Array where Float16Array is missing, and Tensor.to() would
+ *  copy those bits as integers — so decode them here. */
+export function readLogit(t: { type: string; data: ArrayLike<number> }, i: number): number {
+  const v = Number(t.data[i]);
+  if (t.type !== 'float16' || !(t.data instanceof Uint16Array)) return v;
+  const sign = v & 0x8000 ? -1 : 1, exp = (v >> 10) & 0x1f, man = v & 0x3ff;
+  if (exp === 0) return sign * 2 ** -14 * (man / 1024);
+  if (exp === 31) return man ? NaN : sign * Infinity;
+  return sign * 2 ** (exp - 15) * (1 + man / 1024);
 }

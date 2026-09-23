@@ -14,9 +14,22 @@ export {
   type LoadOptions,
   type ChatOptions,
   type ToolCallCheck,
+  type Decision,
+  type DecisionOption,
 } from './chat.ts';
 
 export { NexusEmbedder, similarity, type EmbedOptions } from './embed.ts';
+export {
+  NexusDecider,
+  OPEN_JEV,
+  DECIDER_TRANSFORMERS,
+  type DecisionQuestion,
+  type ChoiceAnswer,
+  type ScoreAnswer,
+  type NoulAnswer,
+  type SystemOneResult,
+  type DeciderOptions,
+} from './decider.ts';
 export { resolveSource, describeSource, dtypeProbe, hubRoot, type ModelSource } from './source.ts';
 
 export {
